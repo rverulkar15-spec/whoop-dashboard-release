@@ -241,6 +241,7 @@ function renderSeason() {
 
   let h = '<div class="pagehead"><h1>Where you stand</h1><p>' + esc(fmtDayW(M.anchor)) + '. ' + M.days.length + ' days of WHOOP data on file.</p></div>';
 
+  try { h += freshnessNote(); } catch (e) { console.error('freshness', e); }
   try { h += storyStrip(); } catch (e) { console.error('story strip', e); }
   try { h += todaysCall(); } catch (e) { console.error('call', e); }
 
@@ -270,8 +271,11 @@ function renderSeason() {
     else h += '<div class="ew ok"><b>Early warning: clear.</b> ' + (W.sig.length ? 'One signal is off (' + esc(W.sig[0]) + '). It takes two, or one strong one, to raise a flag.' : 'HRV, resting heart rate, skin temperature and breathing rate are all near your usual.') + ' <span class="muted">Checked against your last 28 days, ' + W.usable + ' of 4 signals available.</span></div>';
   }
 
+  try { h += notableCard(); } catch (e) { console.error('notable', e); }
+
   // targets
   h += '<section class="card"><div class="sec-h"><h2>This week\'s targets</h2>' + tag('MEASURED') + '</div>' + weekTargets() + '</section>';
+  try { h += planCard(); } catch (e) { console.error('plan', e); }
 
   // map
   h += '<section class="card"><div class="sec-h"><h2>The last 90 days</h2>' + tag('MEASURED') + '</div><p class="sub">Each square is a day, colored by recovery. Tap one for the details.</p>' + seasonMap() + '</section>';
@@ -294,7 +298,7 @@ function renderSeason() {
   renderTargetsEditor(); renderLevelsInfo(X);
   const gb = $('#gymBody'); if (gb && typeof renderGym === 'function') { try { gb.innerHTML = renderGym(); } catch (e) { console.error('gym', e); gb.innerHTML = '<div class="banner err">The strength section could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; } }
   try { renderStory(); } catch (e) { console.error('story', e); const sb = $('#storyBody'); if (sb) sb.innerHTML = '<div class="banner err">The story could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; }
-  const lv = $('#leversBody'); if (lv) { try { lv.innerHTML = (typeof fsCard === 'function' ? fsCard() : '') + leversCard() + (typeof journalCard === 'function' ? journalCard() : ''); } catch (e) { console.error('levers', e); lv.innerHTML = ''; } }
+  const lv = $('#leversBody'); if (lv) { try { lv.innerHTML = (typeof fsCard === 'function' ? fsCard() : '') + (typeof liftReadinessCard === 'function' ? liftReadinessCard() : '') + leversCard() + (typeof journalCard === 'function' ? journalCard() : ''); } catch (e) { console.error('levers', e); lv.innerHTML = ''; } }
 }
 
 /* ---------- targets editor and info ---------- */

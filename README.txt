@@ -44,11 +44,12 @@ WHAT YOU GET
   strain you usually land on in that recovery band, and when to be in bed tonight. Same lines are in the morning email.
   What moves your recovery: in Progress, below the long term trends, plain English splits such as bedtime, hours asleep and weekends.
   Today is short now. Growth, badges and the full list of morning numbers fold open when you tap them.
+  A short notice at the top of Today appears only when data looks stale (no new WHOOP day for 2 or more days, or lifting days in WHOOP that your MacroFactor log lacks).
   The Story: its own tab. Your lifting in attempts, breaks and comebacks, built only from your logs: the arc, then and now
   for every lift, what the longest break cost, what your body did in lifting weeks, rough patches in recovery, body
   weight and steps, a month by month table and the next marks to beat. A short version sits at the top of Today.
   The Season: bottom tabs (Today, Story, Training, Sleep, Progress, Goals, More; the old Drivers tab is now at the bottom of Progress), dark and light themes,
-  a fitness score (0 to 100, built from lifting consistency, strength gains, cardio, recovery trend and sleep, with days off costing points) with a history chart, what moved it and the next best move and badges, a 90 day map, growth against last month and weekly targets. Theme and text size are in More.
+  a fitness score (0 to 100, built from lifting consistency, strength gains, cardio, recovery trend and sleep, with days off costing points) with a history chart, what moved it and the next best move, a plan your week what-if, a notable lately list, a lifting and recovery table and badges, a 90 day map, growth against last month and weekly targets. Theme and text size are in More.
   Dashboard: the Progress section compares week over week, month over month and beginning to now.
   It shows where you grew and where to look, plus charts and personal records.
   Morning email: your recovery, last night, last 28 days against the 28 before, and an early warning

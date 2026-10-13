@@ -531,7 +531,7 @@ SRC_DIR = P("dashboard_src")
 V3_DIR = P("dashboard_v3")
 SRC_JS = ["core.js", "charts.js", "sections1.js", "sections2.js", "sections3.js", "sections4.js", "orb.js"]
 V3_JS = ["core.js", "charts.js", "sections1.js", "sections2.js", "sections3.js", "sections4.js"]
-V3_OWN = ("gym.js", "story.js", "journal.js", "score.js", "call.js", "season.js")
+V3_OWN = ("gym.js", "story.js", "journal.js", "score.js", "plan.js", "call.js", "season.js")
 
 
 def _read(folder, n):
