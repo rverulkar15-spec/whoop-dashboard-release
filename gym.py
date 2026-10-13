@@ -372,7 +372,8 @@ def find_exports(here):
 
 LOG_TYPES = {"warmup": "Warm-Up Set", "warm-up": "Warm-Up Set", "warm up": "Warm-Up Set", "warm-up set": "Warm-Up Set",
              "standard": "Standard Set", "standard set": "Standard Set", "working": "Standard Set", "normal": "Standard Set",
-             "drop": "Drop Set", "drop set": "Drop Set", "failure": "Failure Set", "failure set": "Failure Set"}
+             "drop": "Drop Set", "drop set": "Drop Set", "failure": "Failure Set", "failure set": "Failure Set",
+             "myo": "Myo Set", "myo set": "Myo Set", "myo-rep": "Myo Set", "mini": "Mini-set", "mini set": "Mini-set", "mini-set": "Mini-set"}
 
 
 def find_logs(here):
