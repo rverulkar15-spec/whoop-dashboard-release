@@ -9,6 +9,7 @@ WHAT IS IN THIS FOLDER
   whoop.py              pulls your WHOOP data, merges it into the archive, rebuilds the dashboard
   mailer.py             builds and sends the morning email
   update.py             self update: fetches newer dashboard files by itself once an update address is set
+  update_source.txt     the web address self update checks. Leave it alone
   whoop_export.py       reads the WHOOP data export (journal, cycles, sleeps, workouts) and layers it in
   gym.py                reads your MacroFactor exports (workouts, history, weight, steps) and builds the story lines
   whoop_export_data.json  created by the first run that finds a WHOOP export. Grows with every export
