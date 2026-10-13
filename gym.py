@@ -374,6 +374,8 @@ LOG_TYPES = {"warmup": "Warm-Up Set", "warm-up": "Warm-Up Set", "warm up": "Warm
              "standard": "Standard Set", "standard set": "Standard Set", "working": "Standard Set", "normal": "Standard Set",
              "drop": "Drop Set", "drop set": "Drop Set", "failure": "Failure Set", "failure set": "Failure Set",
              "myo": "Myo Set", "myo set": "Myo Set", "myo-rep": "Myo Set", "mini": "Mini-set", "mini set": "Mini-set", "mini-set": "Mini-set"}
+# the letter or number MacroFactor puts in the circle beside each set
+SET_LABELS = {"w": "Warm-Up Set", "f": "Failure Set", "d": "Drop Set"}
 
 
 def find_logs(here):
@@ -397,8 +399,46 @@ def find_logs(here):
     return out
 
 
+def _set_type(st, ex):
+    """Set type from a type name, or from the circle label MacroFactor shows (W, F, D or a set number)."""
+    for key in ("type", "set"):
+        v = st.get(key)
+        if v is None or str(v).strip() == "":
+            continue
+        t = str(v).strip()
+        low = t.lower()
+        if low in LOG_TYPES:
+            return LOG_TYPES[low]
+        if low in SET_LABELS:
+            return SET_LABELS[low]
+        if re.fullmatch(r"\d+", low):
+            return "Standard Set"
+        if key == "type" and t in ("Warm-Up Set", "Standard Set", "Drop Set", "Failure Set", "Myo Set", "Mini-set"):
+            return t
+        raise ValueError("unknown set label %r for %s" % (t, ex))
+    return "Standard Set"
+
+
+def _reps(st, ex):
+    """Effective reps as MacroFactor counts them: full reps plus a third of a rep per partial. Accepts 10, "10" or "10+4P"."""
+    v = st.get("reps")
+    part = st.get("partials")
+    if isinstance(v, str):
+        m = re.fullmatch(r"\s*(\d+(?:\.\d+)?)\s*(?:\+\s*(\d+)\s*P)?\s*", v, re.I)
+        if not m:
+            raise ValueError("cannot read reps %r for %s" % (v, ex))
+        full, part = float(m.group(1)), (int(m.group(2)) if m.group(2) else part)
+    elif isinstance(v, (int, float)) and not isinstance(v, bool):
+        full = float(v)
+    else:
+        return None, 0
+    p = int(part) if isinstance(part, (int, float)) and not isinstance(part, bool) and part > 0 else 0
+    return round(full + p / 3.0, 4), p
+
+
 def parse_log_file(path):
-    """One workout log file to a list of sessions in the same shape the export reader makes. Raises ValueError with a plain reason."""
+    """One workout log file to a list of sessions in the same shape the export reader makes. Raises ValueError with a plain reason.
+    Dumbbell sets marked per_side are stored as the total of both hands, the way the export stores them."""
     with open(path, "r", encoding="utf-8-sig") as f:
         raw = json.load(f)
     items = raw.get("sessions") if isinstance(raw, dict) and isinstance(raw.get("sessions"), list) else [raw]
@@ -414,15 +454,20 @@ def parse_log_file(path):
             ex = (st.get("ex") or "").strip() if isinstance(st, dict) else ""
             if not ex:
                 raise ValueError("a set has no exercise name")
-            t = str(st.get("type") or "Standard Set").strip()
-            t = LOG_TYPES.get(t.lower(), t)
-            w, reps = _num(st.get("w")), _num(st.get("reps"))
+            t = _set_type(st, ex)
+            w = _num(st.get("w"))
+            if w is not None and st.get("per_side"):
+                w = round(w * 2, 4)
+            reps, p = _reps(st, ex)
             if w is not None and not (0 <= w <= 1500):
                 raise ValueError("weight %s for %s is not believable" % (w, ex))
             if reps is not None and not (0 <= reps <= 500):
                 raise ValueError("reps %s for %s is not believable" % (reps, ex))
-            sets.append({"ex": ex, "base": _num(st.get("base")), "type": t, "w": w, "reps": reps, "rir": _num(st.get("rir")),
-                         "dur": _num(st.get("dur")), "yd": _num(st.get("yd")), "mi": _num(st.get("mi"))})
+            row = {"ex": ex, "base": _num(st.get("base")), "type": t, "w": w, "reps": reps, "rir": _num(st.get("rir")),
+                   "dur": _num(st.get("dur")), "yd": _num(st.get("yd")), "mi": _num(st.get("mi"))}
+            if p:
+                row["pr"] = p
+            sets.append(row)
         if not sets:
             raise ValueError("no sets in the log for " + d)
         name = it.get("name") or ""
@@ -433,12 +478,32 @@ def parse_log_file(path):
             letter = m.group(2)
         mus = it.get("muscles") if isinstance(it.get("muscles"), dict) else None
         out.append({"date": d, "workout": letter, "name": name, "program": program, "duration_s": _num(it.get("duration_s")),
-                    "sets": sets, "src": "log", "muscles": mus})
+                    "sets": sets, "src": "log", "muscles": mus, "replace": bool(it.get("replace"))})
     return out
 
 
+def infer_letter(arch, sess):
+    """The program workout whose exercises best match the logged ones, or None when it is not clear."""
+    plan = (arch.get("program") or {}).get("plan")
+    if not plan:
+        return None
+    names = {x["ex"] for x in sess["sets"]}
+    best, top = [], 0
+    for d in plan[0]["days"]:
+        if d.get("rest"):
+            continue
+        n = len(names & {e["name"] for e in d.get("exercises", [])})
+        if n > top:
+            best, top = [d["workout"]], n
+        elif n == top and n > 0:
+            best.append(d["workout"])
+    return best[0] if top >= 1 and len(best) == 1 and top * 2 >= len(names) else None
+
+
 def merge_log(arch, sessions, fname, mtime, size):
-    """Fold log sessions into the archive. Returns (added, skipped_dates). A date already held from an export is kept as is."""
+    """Fold log sessions into the archive. Returns (added, skipped_dates).
+    A date already held from an export is kept as is. A second file for the same workout adds its exercises to the first
+    (an exercise in both is replaced by the newer file), unless it says "replace": true."""
     cur = arch.get("sessions", [])
     added, skipped = 0, []
     for s in sessions:
@@ -446,9 +511,27 @@ def merge_log(arch, sessions, fname, mtime, size):
         if any(x.get("src") != "log" for x in same):
             skipped.append(s["date"])
             continue
-        cur = [x for x in cur if not (x["date"] == s["date"] and x.get("workout") == s.get("workout"))]
+        if not s.get("workout"):
+            s["workout"] = infer_letter(arch, s)
+            if not s["workout"] and len(same) == 1:
+                s["workout"] = same[0].get("workout")
+            if s["workout"] and not s.get("name"):
+                pn = s.get("program") or (arch.get("program") or {}).get("name") or ""
+                s["name"] = ("%s (Workout %s)" % (pn, s["workout"])) if pn else "Workout " + s["workout"]
+                s["program"] = s.get("program") or pn
+        old = [x for x in same if x.get("workout") == s.get("workout")]
         mus = s.pop("muscles", None)
-        cur.append(s)
+        rep = s.pop("replace", False)
+        if old and not rep:
+            o = old[0]
+            have = {x["ex"] for x in s["sets"]}
+            o["sets"] = [x for x in o["sets"] if x["ex"] not in have] + s["sets"]
+            for k in ("duration_s", "name", "program"):
+                if s.get(k):
+                    o[k] = s[k]
+        else:
+            cur = [x for x in cur if x not in old]
+            cur.append(s)
         if mus and s["date"] not in (arch.get("muscles") or {}):
             arch.setdefault("muscles", {})[s["date"]] = {k: v for k, v in mus.items() if isinstance(v, (int, float))}
         added += 1

@@ -1,32 +1,39 @@
 WORKOUT LOG FILES (workouts that come from MacroFactor screenshots)
 
 WHERE THEY GO
-  Google Drive, WHOOP Dashboard folder, in "4 Drop workout logs here". One file per workout.
-  Name: workout_YYYY-MM-DD.json (add _B for a second workout the same day).
+  Google Drive, WHOOP Dashboard folder, in "4 Drop workout logs here". One file per save.
+  Name: workout_YYYY-MM-DD.json, then workout_YYYY-MM-DD_2.json, _3 and so on for more saves that day.
   The next refresh reads any file it has not seen. Nothing else to do.
 
-FORMAT (JSON, weights in lb as MacroFactor shows them)
+FORMAT (JSON). Copy what MacroFactor shows. The dashboard does the conversions.
 {
-  "format": "mf-screenshot-v1",
-  "date": "2026-10-14",
-  "workout": "D",
-  "name": "Intermediate Upper/Lower Split (Workout D)",
-  "program": "Intermediate Upper/Lower Split",
-  "duration_s": 3300,
+  "format": "mf-screenshot-v2",
+  "date": "2026-10-13",
+  "workout": "A",
   "sets": [
-    {"ex": "Barbell Back Squat", "type": "Warm-Up Set", "w": 135, "reps": 8},
-    {"ex": "Barbell Back Squat", "type": "Standard Set", "w": 225, "reps": 6, "rir": 2},
-    {"ex": "Barbell Back Squat", "type": "Drop Set", "w": 185, "reps": 8, "rir": 0}
+    {"ex": "Low Incline Dumbbell Press", "set": "W", "w": 25, "reps": 9, "per_side": true},
+    {"ex": "Low Incline Dumbbell Press", "set": "F", "w": 50, "reps": 11, "rir": 0, "per_side": true},
+    {"ex": "Low Incline Dumbbell Press", "set": "2", "w": 45, "reps": 10, "rir": 1, "per_side": true},
+    {"ex": "Bent-Over Underhand Grip Barbell Row", "set": "F", "w": 115, "reps": "10+3P", "rir": 0}
   ],
-  "muscles": {"Quads": 3},
   "notes": "optional free text, never read by the dashboard"
 }
-  Required: date, and sets with ex, w, reps. Everything else is optional.
-  Set type is Warm-Up Set, Standard Set or Drop Set. Warm-ups never count toward volume or personal bests.
-  Exercise names are copied exactly as MacroFactor shows them, so they match the older export history.
-  Bodyweight sets use w 0. "muscles" (sets per muscle) is only kept when the screenshot shows it.
+  Required: date, and sets with ex, w and reps. Everything else is optional.
+  workout (A, B, C, D) is optional: if it is left out, it is worked out from the exercises (and the program), or taken
+  from a file already saved for that date.
+  "set" is the circle beside the set: W warm-up, F failure set, D drop set, a number for a standard set.
+  A "type" such as "Myo Set" can be used instead when the app shows a name.
+  "rir" is the number in the red or yellow badge on the right. Warm-ups have none.
+  "reps" is copied as shown, so a set shown as 10+4P is written "10+4P". Each partial rep counts one third of a rep,
+  the same way MacroFactor counts it, so the volume matches the app.
+  "per_side": true is for dumbbell sets shown as "(per side)". The weight is copied as shown (17.5) and the dashboard
+  stores the total of both hands (35), the same way the MacroFactor export does.
+  Bodyweight sets use w 0. Optional extras: duration_s, name, program, muscles (sets per muscle, if the screenshot has it).
 
 RULES
   A MacroFactor export that covers the same date always wins over a log file.
-  Sending a corrected log for the same date replaces the earlier log.
+  A second file for the same workout adds its exercises to the first. An exercise that is in both files is replaced by
+  the newer file, which is how a correction works. Add "replace": true to replace the whole workout instead.
   A file with a problem is skipped and named in sync.log and DOCTOR.bat. It never breaks a refresh.
+  Check: the volume MacroFactor shows for an exercise is the sum of weight x reps over the non warm-up sets,
+  doubled for per side dumbbell sets, with partials counted as a third of a rep.
