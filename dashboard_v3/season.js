@@ -271,6 +271,7 @@ function renderSeason() {
     else h += '<div class="ew ok"><b>Early warning: clear.</b> ' + (W.sig.length ? 'One signal is off (' + esc(W.sig[0]) + '). It takes two, or one strong one, to raise a flag.' : 'HRV, resting heart rate, skin temperature and breathing rate are all near your usual.') + ' <span class="muted">Checked against your last 28 days, ' + W.usable + ' of 4 signals available.</span></div>';
   }
 
+  try { h += fsSection(); } catch (e) { console.error('fitness section', e); }
   try { h += storyStrip(); } catch (e) { console.error('story strip', e); }
   try { h += notableCard(); } catch (e) { console.error('notable', e); }
 
@@ -299,7 +300,7 @@ function renderSeason() {
   renderTargetsEditor(); renderLevelsInfo(X);
   const gb = $('#gymBody'); if (gb && typeof renderGym === 'function') { try { gb.innerHTML = renderGym() + (typeof plateauCard === 'function' ? plateauCard() : ''); } catch (e) { console.error('gym', e); gb.innerHTML = '<div class="banner err">The strength section could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; } }
   try { renderStory(); } catch (e) { console.error('story', e); const sb = $('#storyBody'); if (sb) sb.innerHTML = '<div class="banner err">The story could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; }
-  const lv = $('#leversBody'); if (lv) { try { lv.innerHTML = (typeof fsCard === 'function' ? fsCard() : '') + (typeof liftReadinessCard === 'function' ? liftReadinessCard() : '') + leversCard() + (typeof journalCard === 'function' ? journalCard() : ''); } catch (e) { console.error('levers', e); lv.innerHTML = ''; } }
+  const lv = $('#leversBody'); if (lv) { try { lv.innerHTML = (typeof liftReadinessCard === 'function' ? liftReadinessCard() : '') + leversCard() + (typeof journalCard === 'function' ? journalCard() : ''); } catch (e) { console.error('levers', e); lv.innerHTML = ''; } }
 }
 
 /* ---------- targets editor and info ---------- */
@@ -397,6 +398,7 @@ function route() {
     const mc = ev.target.closest('[data-mc]'); if (mc) { seasonDetail(Number(mc.dataset.mc)); return; }
     const th = ev.target.closest('[data-theme]'); if (th && th.tagName === 'BUTTON') { setTheme(th.dataset.theme); return; }
     const sx = ev.target.closest('[data-size]'); if (sx && sx.tagName === 'BUTTON') { setSize(sx.dataset.size); return; }
+    const fr = ev.target.closest('[data-fsr]'); if (fr && fr.tagName === 'BUTTON') { sset('season.fsrange', fr.dataset.fsr); const F = fitnessModel(), bx = $('#fsChartBox'); if (F && bx) { bx.innerHTML = fsChartBox(F, Number(fr.dataset.fsr)); $$('[data-fsr]').forEach(b => b.setAttribute('aria-pressed', String(b === fr))); } return; }
     const pe = ev.target.closest('[data-peer]'); if (pe) { sset('season.peer', pe.dataset.peer); renderPeers(); return; }
     if (ev.target.closest('#themeBtn')) setTheme((document.documentElement.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark');
   });

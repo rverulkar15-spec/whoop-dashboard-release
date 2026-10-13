@@ -119,7 +119,7 @@ function fitnessModel() {
       const I = fsInputs(), A = M.anchor, first = M.days[0].di, all = [], byDi = new Map();
       for (let d = first; d <= A; d++) { const r = fsDay(I, d); if (r) { all.push(r); byDi.set(d, r); } }
       all.forEach(r => { r.mo = fsMomentum(byDi, r.di); r.status = fsStatus(r.mo, r, r.di); });
-      const okd = r => r.P.recovery != null && r.P.sleep != null;      // days scored on the WHOOP areas too, so the line is not a different mix of areas early on
+      const okd = r => r.P.recovery != null && r.P.sleep != null && r.di >= first + 27;      // days scored on the WHOOP areas too, and a full 28 day window exists, so the line is not a different mix of areas early on
       const shown = all.filter(okd), series = shown.filter(x => x.di >= A - 89);
       if (series.length) {
         const now = series[series.length - 1], back = series.filter(x => x.di <= A - 28).pop() || null;
@@ -274,15 +274,47 @@ function fsAdvice(F) {
   }
   return out.sort((p, q) => q.gain - p.gain).slice(0, 3);
 }
-function fsCard() {
+/* ---------- the dedicated section on Today ---------- */
+var FS_RANGE = 90;
+function fsRangeNow() { try { const v = Number(sget('season.fsrange')); return v === 28 || v === 90 || v === 0 ? v : 90; } catch (e) { return 90; } }
+function fsRows(F, range) { return range ? F.all.filter(r => r.di >= F.A - range + 1) : F.all; }
+function fsChartBox(F, range) {
+  const rows = fsRows(F, range); if (rows.length < 3) return '<p class="muted">Not enough days in this range yet.</p>';
+  const sc = rows.map(r => r.score), lo = Math.min.apply(null, sc), hi = Math.max.apply(null, sc);
+  const y0 = Math.max(0, Math.floor((lo - 6) / 10) * 10), y1 = Math.min(100, Math.ceil((hi + 4) / 10) * 10);
+  const span = rows.length === 1 ? 'day' : rows.length + ' days';
+  let h = lineChart({ title: 'Fitness level, ' + span, w: 720, h: 230, y0, y1, hlines: y0 < 70 && y1 > 70 ? [{ y: 70, label: 'goals met = 70' }] : [], series: [{ label: 'Fitness level', unit: '', pts: rows.map(x => [x.di, Math.round(x.score * 10) / 10]) }] });
+  const mo = rows.filter(r => r.mo && isNum(r.mo.m)).map(r => [r.di, Math.round(r.mo.m * 10) / 10]);
+  if (mo.length >= 3) {
+    const m = mo.map(x => x[1]), a = Math.min(-12, Math.floor(Math.min.apply(null, m) / 5) * 5), z = Math.max(12, Math.ceil(Math.max.apply(null, m) / 5) * 5);
+    h += '<h3 class="st-h3">Momentum: the latest 28 days against the 90 before</h3>' +
+      lineChart({ title: 'Momentum in points', w: 720, h: 170, y0: a, y1: z, hlines: [{ y: 4, label: 'Building from +4' }, { y: 0, label: '0' }, { y: -4, label: 'Slipping from -4' }], series: [{ label: 'Momentum', unit: ' pts', cls: 1, pts: mo }] });
+  }
+  return h;
+}
+function fsSection() {
   const F = fitnessModel(); if (!F || F.series.length < 7) return '';
+  const range = fsRangeNow(), rows = fsRows(F, range);
   const adv = fsAdvice(F), mv = fsMovers(F).slice(0, 3), sig = fsSignals(F), goals = fsGoals(F), hi = fsHighest(F), ll = fsLiftLong(F);
-  let h = '<section class="card"><div class="sec-h"><h2>Your fitness score over time</h2>' + tag('MODELED') + '</div>';
-  h += '<div class="tgs"><div class="tg"><div class="row"><b>Level</b><span>' + nf(F.now.score, 0) + ' of 100</span></div></div>' +
-    '<div class="tg"><div class="row"><b>Momentum</b><span>' + (F.status ? esc(F.status.t) + ', ' + (Math.abs(F.mo.m) < 1 ? 'level with' : (F.mo.m > 0 ? 'up ' : 'down ') + nf(Math.abs(F.mo.m), 0) + ' points against') + ' your baseline (' + fsAgo(F.mo.n) + ' of history)' : 'still building a baseline') + '</span></div></div></div>';
-  if (hi || ll) h += '<p class="sub">' + esc([hi, ll].filter(Boolean).join(' ')) + '</p>';
-  h += lineChart({ title: 'Fitness level, last ' + F.series.length + ' days', w: 720, h: 220, y0: 0, y1: 100, hlines: [{ y: 60, label: '60' }, { y: 75, label: '75' }], series: [{ label: 'Fitness level', unit: '', pts: F.series.map(x => [x.di, Math.round(x.score * 10) / 10]) }] });
+  const best = rows.reduce((a, r) => r.score > a.score ? r : a, rows[0]), low = rows.reduce((a, r) => r.score < a.score ? r : a, rows[0]);
+  const chg = F.back ? F.now.score - F.back.score : null;
+  let h = '<section class="card" id="fsSection"><div class="sec-h"><h2>Your fitness score</h2>' + tag('MODELED') + '</div>';
+  h += '<p class="sub">' + esc(fsLine(F)) + '</p>';
+  h += '<div class="score">' +
+    '<div class="cell"><small>Level</small><b>' + nf(F.now.score, 0) + '</b><span>of 100, meeting your goals is about 70</span></div>' +
+    '<div class="cell"><small>Momentum</small><b>' + (F.status ? esc(F.status.t) : 'Building a baseline') + '</b><span>' + (F.mo ? (Math.abs(F.mo.m) < 1 ? 'level with' : (F.mo.m > 0 ? 'up ' : 'down ') + nf(Math.abs(F.mo.m), 0) + ' points on') + ' your last ' + fsAgo(F.mo.n) + '' : 'not enough history yet') + '</span></div>' +
+    '<div class="cell"><small>Against 4 weeks ago</small><b>' + (chg == null ? 'n/a' : (chg >= 0 ? '+' : '-') + nf(Math.abs(chg), 0)) + '</b><span>' + (F.back ? 'was ' + nf(F.back.score, 0) + ' on ' + esc(fmtDay(F.back.di)) : 'not enough history yet') + '</span></div>' +
+    '<div class="cell"><small>Best in view</small><b>' + nf(best.score, 0) + '</b><span>' + esc(fmtDay(best.di)) + ', lowest ' + nf(low.score, 0) + '</span></div></div>';
+  if (hi || ll) h += '<ul class="calllist">' + [hi, ll].filter(Boolean).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>';
+  h += '<div class="seg" role="group" aria-label="Chart range">' + [[28, '4 weeks'], [90, '3 months'], [0, 'All data']].map(i => '<button type="button" data-fsr="' + i[0] + '" aria-pressed="' + (range === i[0]) + '">' + i[1] + '</button>').join('') + '</div>';
+  h += '<div id="fsChartBox">' + fsChartBox(F, range) + '</div>';
   if (mv.length) h += '<p class="sub">What moved it against 28 days ago: ' + esc(mv.map(m => FS_NAME[m.k].toLowerCase() + ' ' + (m.d > 0 ? 'up ' : 'down ') + nf(Math.abs(m.d), 0) + ' points').join(', ')) + '.</p>';
+  // six areas: now, change over 28 days, trend line
+  h += '<h3 class="st-h3">The six areas inside it</h3><div class="tgs">' + FS_ORDER.map(k => {
+    const v = F.now.P[k], bk = F.back ? F.back.P[k] : null, tr = rows.map(r => r.P[k]).filter(isNum), d = v != null && bk != null ? v - bk : null;
+    return '<div class="tg"><div class="row"><b>' + esc(FS_NAME[k]) + ' <small class="muted">(weight ' + FS_W[k] + ')</small></b><span>' + (v == null ? 'not enough data yet' : nf(v, 0) + ' of 100' + (d == null ? '' : Math.abs(d) < 1 ? ', level with 4 weeks ago' : ', ' + (d > 0 ? 'up ' : 'down ') + nf(Math.abs(d), 0) + ' on 4 weeks ago')) + '</span></div>' +
+      '<div class="tbar" role="img" aria-label="' + esc(FS_NAME[k] + ': ' + (v == null ? 'no data' : nf(v, 0) + ' of 100')) + '"><i style="width:' + (v == null ? 0 : clamp(v, 0, 100).toFixed(0)) + '%"></i></div>' + (tr.length >= 3 ? sparkline(tr, 200, 24) : '') + '</div>';
+  }).join('') + '</div>';
   if (sig.length) {
     h += '<h3 class="st-h3">Are you growing? The latest 28 days against the 90 before</h3><div class="scroll"><table><thead><tr><th>Signal</th><th class="n">Now</th><th class="n">Before</th><th>Change</th></tr></thead><tbody>' +
       sig.map(r => '<tr><td>' + esc(r.label) + '</td><td class="n">' + (r.key === 'str' ? esc(r.extra) : esc(r.fmt(r.now))) + '</td><td class="n">' + (r.key === 'str' ? '' : esc(r.fmt(r.base))) + '</td><td>' + esc(fsDelta(r)) + (r.read === 'flat' ? '' : ' <b>' + (r.read === 'better' ? '(better)' : '(worse)') + '</b>') + '</td></tr>').join('') + '</tbody></table></div>';
@@ -292,6 +324,6 @@ function fsCard() {
       goals.map(g => '<li>' + esc(g[0] + ': ' + g[3](g[1]) + ' against a goal of ' + g[3](g[2]) + (g[1] >= g[2] ? '. Met.' : '. Not yet.')) + '</li>').join('') + '</ul>';
   }
   if (adv.length) h += '<h3 class="st-h3">What would raise it</h3><ul class="calllist">' + adv.map(a => '<li>' + esc(a.text) + '</li>').join('') + '</ul>';
-  h += formula('each point on the line is the same Level calculation run on the 28 days (56 for strength) ending that day, so history is rebuilt from your records and is never stored. Momentum and the growth board compare the latest 28 days with the 90 days before them; where less than that exists, the baseline is shorter and says so. The "what would raise it" lines rerun today with one extra session added and report the difference.') + '</section>';
+  h += formula('each point on the line is the same Level calculation run on the 28 days (56 for strength) ending that day, so history is rebuilt from your records and is never stored. The line starts on the first day WHOOP recovery and sleep both exist. Momentum and the growth board compare the latest 28 days with the 90 days before them; where less than that exists, the baseline is shorter and says so. The "what would raise it" lines rerun today with one extra session added and report the difference.') + '</section>';
   return h;
 }
