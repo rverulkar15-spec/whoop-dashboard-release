@@ -607,6 +607,50 @@ _MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "N
 _BW = re.compile(r"(chin|pull)[- ]?up|(^|\s)dips?(\s|$)", re.I)
 
 
+# What a workout trains, read from its exercises (never a letter). Mirrors gFocus in dashboard_v3/gym.js.
+_GF_RULES = [
+    ("quad", r"squat|leg press|leg extension|hack|lunge|split squat"),
+    ("ham", r"romanian|deadlift|hamstring|hip hinge|glute ham|hip thrust|good morning|back extension|abduction|adduction"),
+    ("calf", r"calf"),
+    ("core", r"crunch|ab wheel|plank|leg raise|sit-?up"),
+    ("shoulder", r"overhead press|lateral raise|rear delt|face pull|shoulder press|upright row|reverse (pec|fly)"),
+    ("triceps", r"tricep|pushdown|skull|dip\b|kickback|overhead extension"),
+    ("biceps", r"curl"),
+    ("back", r"row|pulldown|pull-?down|chin|pull-?up|pullover|lat\b|shrug"),
+    ("chest", r"bench|chest|pec|fly|incline|decline|push-?up|press"),
+]
+_GF_RULES = [(k, re.compile(v, re.I)) for k, v in _GF_RULES]
+_GF_BIG = re.compile(r"squat|leg press|romanian|deadlift|hip thrust|bench|overhead press|(^|\s)row|chin|pull-?up|incline.*press|dip\b", re.I)
+_GF_NAME = {"chest": "chest", "back": "back", "shoulder": "shoulders", "biceps": "biceps", "triceps": "triceps"}
+
+
+def focus(names):
+    """Plain words for what a workout trains, e.g. 'legs, quad focused'."""
+    c, first = {}, {}
+    for i, n in enumerate(names or []):
+        k = next((k for k, r in _GF_RULES if r.search(n)), None)
+        if k:
+            c[k] = c.get(k, 0) + (2 if _GF_BIG.search(n) else 1)
+            first.setdefault(k, i)
+    leg = sum(c.get(k, 0) for k in ("quad", "ham", "calf"))
+    up_k = ("chest", "back", "shoulder", "biceps", "triceps")
+    up = sum(c.get(k, 0) for k in up_k)
+    if not leg and not up:
+        return "full body"
+    if leg >= up + 2 or (leg > up and leg >= 4):
+        q, h = c.get("quad", 0), c.get("ham", 0)
+        return "legs, " + ("quad focused" if q > h else "hamstring and glute focused" if h > q else "quads and hamstrings")
+    t = [_GF_NAME[k] for k in sorted([k for k in up_k if c.get(k)], key=lambda k: (-c[k], first[k]))[:3]]
+    if not t:
+        return "full body"
+    lab = t[0] if len(t) == 1 else ", ".join(t[:-1]) + " and " + t[-1]
+    return "upper body, " + lab + (" with some legs" if leg >= 2 else "")
+
+
+def day_focus(day):
+    return focus([e["name"] for e in day.get("exercises", []) if not e.get("skipped")])
+
+
 def day_num(iso):
     return (datetime.date.fromisoformat(iso[:10]) - _EPOCH).days
 
@@ -817,25 +861,25 @@ def call_lines(arch, today, band, lifted=False):
             return ["Your %s program has run all %d cycles. Start the next block in MacroFactor and export again to bring the plan here." % (pl.prog["name"], pl.prog["cycles"])]
         if a["day"].get("rest"):
             nx = pl.next(today + 1, today)
-            out.append("Rest day in your program (%s)." % pl.cycle_text(a) + (" Next up: Workout %s on %s." % (nx["day"]["workout"], day_text(nx["di"])) if nx else "") +
+            out.append("Rest day in your program (%s)." % pl.cycle_text(a) + (" Next up: %s on %s." % (day_focus(nx["day"]), day_text(nx["di"])) if nx else "") +
                        (" Green morning, so zone 2 or a run fits well." if band == "high" else ""))
         else:
             st = pl.status(today, today)
-            L = a["day"]["workout"]
+            L = day_focus(a["day"])
             if st == "done" or lifted:
-                out.append("Workout %s is done for today. Keep the rest of the day easy." % L)
+                out.append("Your %s workout is done for today. Keep the rest of the day easy." % L)
             else:
                 ft = pl.first_try(a["day"], today)
                 opens = (" It opens with %s%s." % (ft[0], ", try about %s for the first set" % ft[1] if ft[1] else "")) if ft else ""
                 if band == "high":
-                    out.append("Workout %s is on your program today (%s). Green light: go as planned and push the top sets.%s" % (L, pl.cycle_text(a), opens))
+                    out.append("Today is %s (%s). Green light: go as planned and push the top sets.%s" % (L, pl.cycle_text(a), opens))
                 elif band == "mid":
-                    out.append("Workout %s is on your program today (%s). Train it as planned and leave a rep or two in reserve on the failure sets.%s" % (L, pl.cycle_text(a), opens))
+                    out.append("Today is %s (%s). Train it as planned and leave a rep or two in reserve on the failure sets.%s" % (L, pl.cycle_text(a), opens))
                 else:
-                    out.append("Workout %s is on your program today, but recovery is low. Either move it back a day, or do it lighter: about 10 percent off the weights and every set stopped 3 reps short of failure." % L)
+                    out.append("Today is %s, but recovery is low. Either move it back a day, or do it lighter: about 10 percent off the weights and every set stopped 3 reps short of failure." % L)
         for d in range(today - 1, today - 4, -1):
             if pl.status(d, today) == "missed":
-                out.append("Workout %s from %s is not in your MacroFactor log." % (pl.at(d)["day"]["workout"], day_text(d)))
+                out.append("Your %s workout from %s is not in your MacroFactor log." % (day_focus(pl.at(d)["day"]), day_text(d)))
                 break
         return out
     except Exception:
