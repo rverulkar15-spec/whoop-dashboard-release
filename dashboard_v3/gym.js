@@ -1,5 +1,5 @@
 /* ---------- Gym log from MacroFactor: model, program plan, Strength section ---------- */
-/* Weights in the export are pounds. They are shown in your unit setting. e1RM = estimated one rep max (MODELED). */
+/* Weights in the export are pounds. They are shown in your unit setting. Lift progress uses the heaviest weight actually lifted, never an estimate. */
 var GYM;                                   // undefined until first use, then the model or null
 const G_BW = /(chin|pull)[- ]?up|(^|\s)dips?(\s|$)/i;     // lifts where your body weight is part of the load
 const G_SETS_GOAL = 10;                    // weekly hard sets per muscle often linked to growth (a guide, not a rule)
@@ -8,6 +8,7 @@ function gDi(s) { const p = String(s).split('-'); return Date.UTC(+p[0], +p[1] -
 function gLb(v) { return C.uWeight === 'lb' ? v : v / KG_LB; }
 function gUnit() { return C.uWeight === 'lb' ? 'lb' : 'kg'; }
 function gW(v) { const x = gLb(v); return nf(x, C.uWeight === 'lb' ? (Math.abs(x - Math.round(x)) > 0.05 ? 1 : 0) : 1) + ' ' + gUnit(); }
+function gWt(ex, v) { return (G_BW.test(ex) ? '+' : '') + gW(v); }
 function gVol(v) { return Math.round(gLb(v)).toLocaleString('en-US') + ' ' + gUnit(); }
 function gTry(v) { return C.uWeight === 'lb' ? nf(v, v % 1 ? 1 : 0) + ' lb' : nf(Math.round(gLb(v) * 2) / 2, 1) + ' kg'; }
 function gWork(s) { return s.type !== 'Warm-Up Set'; }
@@ -44,21 +45,25 @@ function gymModel() {
     });
     if (bws.length >= 2) { const m = median(bws); if (m >= 60 && m <= 400) g.bw = m; }
 
-    // strength series per lift: MacroFactor's own estimates, filled in from logged sets where a day is missing
-    Object.keys(g.H).forEach(ex => { g.E[ex] = g.H[ex].filter(p => isNum(p.e1)).map(p => ({ di: p.di, e1: p.e1 })); });
+    // strength series per lift: the heaviest weight actually lifted in a working set (never an estimate)
+    const put = (ex, di, w, reps) => { if (!isNum(w) || !(w > 0)) return; const arr = g.E[ex] = g.E[ex] || [], o = arr.find(p => p.di === di);
+      if (!o) arr.push({ di, w, reps: reps || null }); else if (w > o.w) { o.w = w; o.reps = reps || null; } else if (w === o.w && reps > (o.reps || 0)) o.reps = reps; };
     g.sessions.forEach(s => {
-      const by = {}; s.sets.forEach(x => { if (gWork(x)) (by[x.ex] = by[x.ex] || []).push(x); });
-      Object.keys(by).forEach(ex => {
-        if (g.E[ex] && g.E[ex].some(p => p.di === s.di)) return;
-        if (G_BW.test(ex) && !g.bw) return;
-        const best = Math.max.apply(null, [0].concat(by[ex].map(x => gE1(g, ex, x) || 0)));
-        if (best > 0) (g.E[ex] = g.E[ex] || []).push({ di: s.di, e1: best });
+      const by = {}; s.sets.forEach(x => { if (gWork(x) && isNum(x.w) && isNum(x.reps) && x.reps >= 1) (by[x.ex] = by[x.ex] || []).push(x); });
+      Object.keys(by).forEach(ex => { by[ex].forEach(x => put(ex, s.di, x.w, x.reps)); });
+    });
+    Object.keys(g.H).forEach(ex => {
+      g.H[ex].forEach(p => {
+        if (g.E[ex] && g.E[ex].some(q => q.di === p.di)) return;
+        if (!isNum(p.top)) return;
+        let t = p.top; if (G_BW.test(ex)) { if (!g.bw) return; t = p.top - g.bw; }
+        put(ex, p.di, Math.round(t * 10) / 10, null);
       });
     });
     Object.keys(g.E).forEach(ex => { g.E[ex].sort((a, b) => a.di - b.di); });
     Object.keys(g.E).forEach(ex => {
       let mx = 0;
-      g.E[ex].forEach((p, i) => { if (i >= 2 && p.e1 > mx * 1.005) g.prs.push({ ex, di: p.di, e1: p.e1, prev: mx }); if (p.e1 > mx) mx = p.e1; });
+      g.E[ex].forEach((p, i) => { if (i >= 2 && p.w > mx) g.prs.push({ ex, di: p.di, w: p.w, prev: mx }); if (p.w > mx) mx = p.w; });
     });
     g.prs.sort((a, b) => a.di - b.di);
 
@@ -217,7 +222,7 @@ function gymBadgeList() {
   const res = [], B = (id, ic, name, desc, done, when, prog) => res.push({ id, ic, name, desc, done: !!done, when: done ? when : null, prog });
   const wk = gWeekRows(), full = wk.filter(w => w.complete);
   if (g.prog) B('pweek', 'PW', 'Program Week', 'Finish every planned workout in a program week', full.length > 0, full.length ? full[0].end : null, 'best week: ' + Math.max.apply(null, [0].concat(wk.map(w => w.done))) + ' of ' + (wk.length ? wk[wk.length - 1].planned : 4));
-  B('pr1', 'PR', 'Personal Best', 'Beat your best estimated one rep max on a lift', g.prs.length > 0, g.prs.length ? g.prs[0].di : null, 'none logged yet');
+  B('pr1', 'PR', 'Personal Best', 'Lift more weight than you ever have before on a lift', g.prs.length > 0, g.prs.length ? g.prs[0].di : null, 'none logged yet');
   B('pr10', 'P10', 'Ten Bests', 'Set 10 personal bests across your lifts', g.prs.length >= 10, g.prs[9] && g.prs[9].di, g.prs.length + ' of 10 so far');
   const days = Array.from(g.days).sort((p, q) => p - q);
   B('gym50', 'G50', 'Fifty Gym Days', '50 days logged in the gym, across all your exports', days.length >= 50, days[49], days.length + ' of 50 so far');
@@ -281,7 +286,7 @@ function gymNext(g, today) {
     return a && a.over ? '<section class="card"><div class="sec-h"><h2>Next workout</h2></div><p class="sub">The program has run its last cycle. Start the next block in MacroFactor and export again.</p></section>' : '';
   }
   const label = nx.di === today ? 'today' : fmtDayW(nx.di);
-  let inner = '<p class="sub">Cycle ' + nx.cycle + ' of ' + g.prog.cycles + '. Weights are a suggestion from what you lifted last time (estimated one rep max, then the load that should land on the planned reps with the planned reps in reserve). Round to the weights your gym has.</p>';
+  let inner = '<p class="sub">Cycle ' + nx.cycle + ' of ' + g.prog.cycles + '. Weights are a suggestion worked out from the best set you did last time, then the load that should land on the planned reps with the planned reps in reserve. Round to the weights your gym has.</p>';
   nx.day.exercises.forEach(e => {
     const p = gExPlan(e, nx.di);
     inner += '<div class="gx' + (e.skipped ? ' skip' : '') + '"><div class="gxh"><b>' + esc(e.name) + '</b>' + (e.skipped ? '<small>skipped in the plan</small>' : '') + '</div>';
@@ -293,7 +298,7 @@ function gymNext(g, today) {
     }
     inner += '</div>';
   });
-  inner += formula('suggested load = estimated one rep max from your best working set last time, divided by (1 + (planned reps + planned reps in reserve) / 30). The estimate is the Epley formula with reps in reserve counted as reps you could still have done. Body weight is added for chin ups and dips. Marked rough when the plan is above 12 reps total, where the formula is least reliable. Warm up sets are ignored.');
+  inner += formula('suggested load = a planning figure (an estimated one rep max, never shown elsewhere) from your best working set last time, divided by (1 + (planned reps + planned reps in reserve) / 30). The estimate is the Epley formula with reps in reserve counted as reps you could still have done. Body weight is added for chin ups and dips. Marked rough when the plan is above 12 reps total, where the formula is least reliable. Warm up sets are ignored.');
   return gFold('gymnext', 'Next: Workout ' + esc(nx.day.workout) + ', ' + esc(label), 'MODELED', inner, true);
 }
 
@@ -304,18 +309,18 @@ function gymLifts(g, ref) {
     if (s.length < 3 || recent.length < 2) return;
     const lastP = recent[recent.length - 1], base = s.filter(p => p.di <= ref - 28).pop() || recent[0];
     const isPR = g.prs.some(p => p.ex === ex && p.di === lastP.di);
-    rows.push({ ex, n: recent.length, now: lastP.e1, chg: lastP.e1 - base.e1, hasBase: base !== lastP, isPR, best: Math.max.apply(null, s.map(p => p.e1)), spark: s.slice(-14).map(p => p.e1) });
+    rows.push({ ex, n: recent.length, now: lastP.w, reps: lastP.reps, chg: lastP.w - base.w, hasBase: base !== lastP, isPR, best: Math.max.apply(null, s.map(p => p.w)), spark: s.slice(-14).map(p => p.w) });
   });
   rows.sort((a, b) => b.n - a.n || b.now - a.now);
   if (!rows.length) return '';
-  let inner = '<p class="sub">Estimated one rep max per lift over your sessions. Up means stronger. These numbers are MacroFactor\'s estimates, which is why they move a little from week to week.</p><div class="glifts">';
+  let inner = '<p class="sub">The heaviest weight you actually lifted in a working set, per lift, session by session. Warm up sets are ignored. Chin ups and dips show the weight added to your body weight.</p><div class="glifts">';
   rows.slice(0, 9).forEach(r => {
     const pct = r.hasBase && r.now - r.chg > 0 ? r.chg / (r.now - r.chg) * 100 : null;
-    inner += '<div class="gl"><div class="glh"><b>' + esc(r.ex) + '</b>' + (r.isPR ? '<span class="chipx">★ best yet</span>' : '') + '</div><div class="glb"><div><span class="glv">' + esc(gW(r.now)) + '</span><small>' +
-      (pct == null ? 'new' : (r.chg >= 0 ? 'up ' : 'down ') + esc(gW(Math.abs(r.chg))) + ' (' + nf(Math.abs(pct), 0) + '%) over about 4 weeks') + (pct != null && Math.abs(pct) > 40 ? ' (the first sessions of a lift are noisy)' : '') + (G_BW.test(r.ex) ? ', includes body weight' : '') + '</small></div>' + gSpark(r.spark, 110, 30) + '</div></div>';
+    inner += '<div class="gl"><div class="glh"><b>' + esc(r.ex) + '</b>' + (r.isPR ? '<span class="chipx">★ best yet</span>' : '') + '</div><div class="glb"><div><span class="glv">' + esc(gWt(r.ex, r.now)) + (r.reps ? ' x ' + r.reps : '') + '</span><small>' +
+      (pct == null ? 'new' : (r.chg >= 0 ? 'up ' : 'down ') + esc(gW(Math.abs(r.chg))) + ' (' + nf(Math.abs(pct), 0) + '%) over about 4 weeks') + (pct != null && Math.abs(pct) > 40 ? ' (the first sessions of a lift are noisy)' : '') + '' + '</small></div>' + gSpark(r.spark, 110, 30) + '</div></div>';
   });
   inner += '</div>';
-  return gFold('gymlifts', 'Lift progress', 'MODELED', inner, true);
+  return gFold('gymlifts', 'Lift progress', 'MEASURED', inner, true);
 }
 
 function gymMuscles(g, ref) {

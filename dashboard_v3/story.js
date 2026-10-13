@@ -172,22 +172,22 @@ function stLifts() {
   const rows = [];
   Object.keys(g.E).forEach(ex => {
     const p = g.E[ex]; if (p.length < 5) return;
-    const a = mean(p.slice(0, 2).map(x => x.e1)), b = mean(p.slice(-2).map(x => x.e1)), best = Math.max.apply(null, p.map(x => x.e1));
-    rows.push({ ex, n: p.length, start: a, now: b, best, pct: (b / a - 1) * 100, vals: p.map(x => x.e1), lastIsBest: p[p.length - 1].e1 >= best * 0.999, lastDi: p[p.length - 1].di, firstDi: p[0].di });
+    const a = Math.max.apply(null, p.slice(0, 2).map(x => x.w)), b = Math.max.apply(null, p.slice(-2).map(x => x.w)), best = Math.max.apply(null, p.map(x => x.w));
+    rows.push({ ex, n: p.length, start: a, now: b, best, pct: (b / a - 1) * 100, vals: p.map(x => x.w), lastIsBest: p[p.length - 1].w >= best, lastDi: p[p.length - 1].di, firstDi: p[0].di });
   });
   return rows.sort((x, y) => y.pct - x.pct);
 }
 function stLiftsCard(S) {
   const rows = stLifts(); if (!rows || !rows.length) return '';
   const g = gymModel(), gained = rows.filter(r => r.pct >= 3), flat = rows.filter(r => r.pct < 3);
-  const line = r => '<tr><td>' + esc(r.ex) + '</td><td class="n">' + esc(gW(r.start)) + '</td><td class="n">' + esc(gW(r.now)) + '</td><td class="n"><span class="' + (r.pct >= 3 ? 'good' : r.pct <= -3 ? 'warn' : '') + '">' + (r.pct > 0 ? 'up ' : r.pct < 0 ? 'down ' : '') + nf(Math.abs(r.pct), 0) + '%</span></td><td class="n">' + gSpark(r.vals, 80, 24) + '</td></tr>';
-  let h = '<section class="card"><div class="sec-h"><h2>Then and now</h2>' + tag('MODELED') + '</div>';
+  const line = r => '<tr><td>' + esc(r.ex) + '</td><td class="n">' + esc(gWt(r.ex, r.start)) + '</td><td class="n">' + esc(gWt(r.ex, r.now)) + '</td><td class="n"><span class="' + (r.pct >= 3 ? 'good' : r.pct <= -3 ? 'warn' : '') + '">' + (r.pct > 0 ? 'up ' : r.pct < 0 ? 'down ' : '') + nf(Math.abs(r.pct), 0) + '%</span></td><td class="n">' + gSpark(r.vals, 80, 24) + '</td></tr>';
+  let h = '<section class="card"><div class="sec-h"><h2>Then and now</h2>' + tag('MEASURED') + '</div>';
   const top = gained[0];
-  h += '<p class="sub">Estimated one rep max for every lift you have logged at least five times. ' + gained.length + ' of ' + rows.length + ' are up by 3 percent or more' + (top ? ', led by ' + esc(top.ex) + ' (' + esc(gW(top.start)) + ' to ' + esc(gW(top.now)) + ')' : '') + '.</p>';
+  h += '<p class="sub">The heaviest weight you actually lifted, for every lift you have logged at least five times. ' + gained.length + ' of ' + rows.length + ' are up by 3 percent or more' + (top ? ', led by ' + esc(top.ex) + ' (' + esc(gWt(top.ex, top.start)) + ' to ' + esc(gWt(top.ex, top.now)) + ')' : '') + '.</p>';
   h += '<div class="scroll"><table><thead><tr><th>Lift</th><th class="n">Start</th><th class="n">Now</th><th class="n">Change</th><th class="n">Path</th></tr></thead><tbody>' + gained.map(line).join('') + '</tbody></table></div>';
   if (flat.length) h += '<h3 class="st-h3">Not moved yet</h3><div class="scroll"><table><tbody>' + flat.map(line).join('') + '</tbody></table></div><p class="sub">Flat or lower is information, not failure. A lift can sit still while another program block or a different set of lifts takes the effort.</p>';
   h += '<p class="sub">The first sessions of a lift are noisy, so the biggest percentages are often machines you only just learned.</p>';
-  h += formula('start = mean of the first two sessions of that lift, now = mean of the last two. Each value is an estimated one rep max (MacroFactor\'s own figure, or Epley from your sets: weight x (1 + (reps + reps in reserve) / 30)). Only lifts with five or more sessions are shown.') + '</section>';
+  h += formula('start = the heaviest working set weight across the first two sessions of that lift, now = the heaviest across the last two. These are weights you actually lifted, nothing estimated. Chin ups and dips show weight added to body weight. Only lifts with five or more sessions are shown.') + '</section>';
   return h;
 }
 function stBreakCost(S) {
@@ -197,20 +197,20 @@ function stBreakCost(S) {
   Object.keys(g.E).forEach(ex => {
     const p = g.E[ex], before = p.filter(x => x.di <= closed.from), after = p.filter(x => x.di >= closed.to);
     if (before.length < 2 || !after.length) return;
-    const peak = Math.max.apply(null, before.map(x => x.e1)), back = after[0].e1, reg = after.find(x => x.e1 >= peak * 0.98);
-    out.push({ ex, peak, back, backDi: after[0].di, now: after[after.length - 1].e1, loss: (back / peak - 1) * 100, wks: reg ? Math.round((reg.di - after[0].di) / 7) : null, regained: !!reg });
+    const peak = Math.max.apply(null, before.map(x => x.w)), back = after[0].w, reg = after.find(x => x.w >= peak);
+    out.push({ ex, peak, back, backDi: after[0].di, now: after[after.length - 1].w, loss: (back / peak - 1) * 100, wks: reg ? Math.round((reg.di - after[0].di) / 7) : null, regained: !!reg });
   });
   return out.length ? { gap: closed, rows: out.sort((a, b) => a.loss - b.loss) } : null;
 }
 function stBreakCard(S) {
   const B = stBreakCost(S); if (!B) return '';
   const med = median(B.rows.map(r => r.loss)), got = B.rows.filter(r => r.regained), gw = got.length ? median(got.map(r => r.wks)) : null;
-  let h = '<section class="card"><div class="sec-h"><h2>What the longest break cost</h2>' + tag('MODELED') + '</div>';
+  let h = '<section class="card"><div class="sec-h"><h2>What the longest break cost</h2>' + tag('MEASURED') + '</div>';
   h += '<p class="sub">You were away ' + stD(B.gap.days) + ' (' + esc(fmtDay(B.gap.from)) + ' to ' + esc(fmtDay(B.gap.to)) + '). For the ' + B.rows.length + ' lifts logged both before and after, the first session back sat ' + (med < -0.5 ? 'a median of <b>' + nf(Math.abs(med), 0) + '%</b> below the old peak' : med > 0.5 ? 'a median of <b>' + nf(med, 0) + '%</b> above the old peak' : 'level with the old peak') + '. ' +
-    (got.length ? got.length + ' of ' + B.rows.length + ' got back to within 2 percent of it' + (gw != null ? ', a median of ' + stW(gw) + ' after that first session' : '') + '.' : 'None are back to the old peak yet.') + '</p>';
+    (got.length ? got.length + ' of ' + B.rows.length + ' got back to that weight' + (gw != null ? ', a median of ' + stW(gw) + ' after that first session' : '') + '.' : 'None are back to the old peak yet.') + '</p>';
   h += '<div class="scroll"><table><thead><tr><th>Lift</th><th class="n">Peak before</th><th class="n">First session back</th><th class="n">Now</th><th class="n">Back to peak</th></tr></thead><tbody>' +
-    B.rows.map(r => '<tr><td>' + esc(r.ex) + '</td><td class="n">' + esc(gW(r.peak)) + '</td><td class="n">' + esc(gW(r.back)) + ' <small class="muted">(' + esc(fmtDay(r.backDi)) + ', ' + (r.loss >= 0 ? 'up ' : 'down ') + nf(Math.abs(r.loss), 0) + '%)</small></td><td class="n">' + esc(gW(r.now)) + '</td><td class="n">' + (r.regained ? (r.wks === 0 ? 'right away' : 'after ' + stW(r.wks)) : '<span class="muted">not yet</span>') + '</td></tr>').join('') + '</tbody></table></div>';
-  h += formula('peak = best estimated one rep max before the break began. First session back = the first logged value for that lift on or after the day you restarted. Back to peak = the first session at 98 percent or more of that peak, counted from that first session back. Only lifts with two or more sessions before and one after are included.') + '</section>';
+    B.rows.map(r => '<tr><td>' + esc(r.ex) + '</td><td class="n">' + esc(gWt(r.ex, r.peak)) + '</td><td class="n">' + esc(gWt(r.ex, r.back)) + ' <small class="muted">(' + esc(fmtDay(r.backDi)) + ', ' + (r.loss >= 0 ? 'up ' : 'down ') + nf(Math.abs(r.loss), 0) + '%)</small></td><td class="n">' + esc(gWt(r.ex, r.now)) + '</td><td class="n">' + (r.regained ? (r.wks === 0 ? 'right away' : 'after ' + stW(r.wks)) : '<span class="muted">not yet</span>') + '</td></tr>').join('') + '</tbody></table></div>';
+  h += formula('peak = the heaviest weight you actually lifted on that lift before the break began. First session back = the heaviest working set on or after the day you restarted. Back to peak = the first session that matched or beat that peak weight, counted from that first session back. Only lifts with two or more sessions before and one after are included.') + '</section>';
   return h;
 }
 
@@ -343,7 +343,7 @@ function stNextCard(S) {
   if (S.ongoing) items.push(left > 0 ? 'This week: ' + cw.n + ' of ' + S.target + ' lifts so far, ' + stD(Math.max(0, weekStart(S.today) + 6 - S.today)) + ' left after today.' : 'This week: target met with ' + cw.n + ' lifts.');
   if (g) {
     const near = (stLifts() || []).filter(r => !r.lastIsBest && r.now >= r.best * 0.97).slice(0, 3);
-    near.forEach(r => items.push(esc(r.ex) + ' is within ' + nf((1 - r.now / r.best) * 100, 0) + '% of its best (' + esc(gW(r.now)) + ' against ' + esc(gW(r.best)) + ').'));
+    near.forEach(r => items.push(esc(r.ex) + ' is within ' + nf((1 - r.now / r.best) * 100, 0) + '% of its best (' + esc(gWt(r.ex, r.now)) + ' against ' + esc(gWt(r.ex, r.best)) + ').'));
     const recent = g.prs.filter(p => p.di >= S.today - 27).length;
     if (recent) items.push(stPl(recent, 'new best', 'new bests') + ' in the last 28 days.');
   }

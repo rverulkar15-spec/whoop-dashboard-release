@@ -1,8 +1,8 @@
 {
- "release": 3,
+ "release": 4,
  "files": {
   "README.txt": "4ee56a4f63033f5a24db7d46cb9eb1b122a139123737c40cd7da4ec976e14d7f",
-  "gym.py": "3234febd6a651795600a612584738b4f29b9ce718a74811b26240b394b872595",
+  "gym.py": "d1546144edce955f9e9b3a1083989abf76ffc73f273d4e1cf8b99a5a8494cb37",
   "mailer.py": "19906a38c46bbf362c3c957f12c725b58f06ef6cce53126c4c2ea4034b1e2e1c",
   "update.py": "f66d0ed158decc86225bd4157241eb65d5f7b3b39a49876f7199fe488d6a25e7",
   "whoop.py": "643eaee3dab7431192f7644e8d785616e996426838b46b876581aa30608cbb57",
@@ -17,11 +17,11 @@
   "dashboard_src/sections4.js": "20fd51041d2c4e216010a2d20cc9182a389c9e8914263c95a4eca2e68b18c3d7",
   "dashboard_src/style.css": "5f5b53d4056211e08367a4dd57506057e789d1ff4e05c20fb83ee994be0e3e05",
   "dashboard_v3/call.js": "aef52335cff43cc7bd10400b93b5c18f9f806d442bb34ade892910f115b34028",
-  "dashboard_v3/gym.js": "e8e3bfd4e8fa8e3ed34aaa3a402414f5401702bf2baacbcbac983cae2bfa48e7",
+  "dashboard_v3/gym.js": "3b82209cc7c58e19ac1bd62efca1492ca5f9913633c81927acc67f2f8a4151be",
   "dashboard_v3/index.html": "d4c766e8a4b22701c0bc405fed4d56b010d17f428fcbaf858fa71cd86d250672",
   "dashboard_v3/journal.js": "db2af2662e3ddc76aa8c3cd9398c563ea4303da4a33dbafa21c243a5fb51e260",
-  "dashboard_v3/season.js": "f330265d0371b8cedd72d2b88fe783f1eed66c1233113c328d73a20ba46f52c1",
-  "dashboard_v3/story.js": "29542bce45fbef8ec16e0addb300a92c4bbee84403e2474d1a0fa49524f2a61c",
+  "dashboard_v3/season.js": "5427199d036a0d05cafb6f5ed08fd30878cb404be57c332e0cceaa0d273e7941",
+  "dashboard_v3/story.js": "97cbaea2b45743d86bddf0cf8a024e250aad1cd5300c0b83a7978365b5f1cf41",
   "dashboard_v3/theme.css": "08c25859f786c49fdb6741c4a96bf6977003f3b8464980a293110821209336b3"
  }
 }

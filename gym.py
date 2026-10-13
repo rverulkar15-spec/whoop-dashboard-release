@@ -479,26 +479,36 @@ class Plan:
         # strength series for the weekly note
         self.E = {}
         for ex, d in self.hist.items():
-            self.E[ex] = sorted((k, v[0]) for k, v in d.items() if v[0] is not None)
+            bwl = bool(_BW.search(ex))
+            for k, v in d.items():
+                t = v[1]
+                if t is None:
+                    continue
+                if bwl:
+                    if not self.bw:
+                        continue
+                    t = t - self.bw
+                if t > 0:
+                    self.E.setdefault(ex, []).append((k, round(t, 1)))
         for s in self.sessions:
             by = {}
             for x in s["sets"]:
                 if x["type"] != "Warm-Up Set":
                     by.setdefault(x["ex"], []).append(x)
             for ex, xs in by.items():
-                if any(p[0] == s["di"] for p in self.E.get(ex, [])):
-                    continue
-                if _BW.search(ex) and not self.bw:
-                    continue
-                best = max([self.e1(ex, x) or 0 for x in xs] + [0])
-                if best > 0:
-                    self.E.setdefault(ex, []).append((s["di"], best))
+                ws = [x["w"] for x in xs if x.get("w") is not None and x.get("reps") is not None and x["reps"] >= 1]
+                if ws and max(ws) > 0:
+                    e = [p for p in self.E.get(ex, []) if p[0] == s["di"]]
+                    if e:
+                        self.E[ex].remove(e[0])
+                        ws.append(e[0][1])
+                    self.E.setdefault(ex, []).append((s["di"], max(ws)))
         self.prs = []
         for ex in self.E:
             self.E[ex].sort()
             mx = 0
             for i, (di, v) in enumerate(self.E[ex]):
-                if i >= 2 and v > mx * 1.005:
+                if i >= 2 and v > mx:
                     self.prs.append((di, ex, v))
                 mx = max(mx, v)
         self.prs.sort()
@@ -652,7 +662,7 @@ def weekly_lines(arch, mon):
                 out.append("Program workouts: %d of %d done%s." % (done, planned, " (%s)" % pl.cycle_text(cyc) if cyc else ""))
         prs = [p for p in pl.prs if mon <= p[0] < mon + 7]
         if prs:
-            out.append("New bests (estimated one rep max): " + "; ".join("%s %.0f lb" % (p[1], p[2]) for p in prs[:5]) + ".")
+            out.append("New heaviest weights: " + "; ".join("%s %.0f lb" % (p[1], p[2]) for p in prs[:5]) + ".")
         if pl.export_di < mon + 6:
             out.append("The gym log was last exported %s, so this week may be incomplete." % day_text(pl.export_di))
         return out
