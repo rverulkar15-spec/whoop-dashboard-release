@@ -409,7 +409,33 @@ function route() {
   function a11yScroll() {
     $$('.scroll:not([tabindex])').forEach(el => { el.setAttribute('tabindex', '0'); el.setAttribute('role', 'region'); el.setAttribute('aria-label', 'Scrollable table'); });
   }
-  new MutationObserver(a11yScroll).observe(document.body, { childList: true, subtree: true }); a11yScroll();
+  // on a phone, wide tables become one card per row: the first cell is the title, every other cell carries its column name
+  function stackTables() {
+    $$('table:not([data-stk])').forEach(t => {
+      t.setAttribute('data-stk', '1');
+      if (t.classList.contains('heat')) return;
+      const labs = Array.from(t.querySelectorAll('thead th')).map(x => x.textContent.trim());
+      if (labs.length < 3) return;
+      t.classList.add('stack'); t.setAttribute('role', 'table');
+      t.querySelectorAll('thead tr, tbody tr').forEach(tr => {
+        tr.setAttribute('role', 'row'); let i = 0;
+        if (tr.children.length === 1 && tr.children[0].colSpan > 1) tr.classList.add('sec');
+        Array.from(tr.children).forEach(td => {
+          const span = td.colSpan > 1; td.setAttribute('role', td.tagName === 'TH' ? 'columnheader' : 'cell');
+          if (tr.parentNode.tagName === 'THEAD') return;
+          if (span) { td.classList.add('span'); i += td.colSpan; return; }
+          if (!td.textContent.trim()) td.classList.add('blank');
+          td.setAttribute('data-label', labs[i] || '');
+          if (i > 0 && td.childNodes.length > 1) { const w = document.createElement('span'); w.className = 'v'; while (td.firstChild) w.appendChild(td.firstChild); td.appendChild(w); }
+          i++;
+        });
+      });
+    });
+  }
+  function tidy() { a11yScroll(); stackTables(); }
+  new MutationObserver(tidy).observe(document.body, { childList: true, subtree: true }); tidy();
+  let lastCw = document.documentElement.clientWidth, rt = null;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { const w = document.documentElement.clientWidth; if (Math.abs(w - lastCw) > 40) { lastCw = w; try { renderAll(true); } catch (e) { console.error('resize', e); } } }, 250); });
   window.addEventListener('hashchange', route);
   route();
 })();

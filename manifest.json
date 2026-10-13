@@ -1,13 +1,13 @@
 {
- "release": 10,
+ "release": 11,
  "files": {
-  "README.txt": "0e12c41bb5be733486da7a873a7f2359bff6dd3372dd018c68999d6e272ffee8",
+  "README.txt": "2d86ff98311e54f7c3eff73dfd202195d676d51d7ccf80fedfbae73edb2c12c9",
   "gym.py": "52302b38c1225c1c1ada3d5707623ec5b025568b390501fafa88a5f14da972c3",
   "mailer.py": "b052b95da6579bbc8cf7555075f94a989023d43d065e20b9f8a085cf107e968b",
   "update.py": "f66d0ed158decc86225bd4157241eb65d5f7b3b39a49876f7199fe488d6a25e7",
   "whoop.py": "502bf4128d307266bbc82683dac13c001eda5ae761a8ae4e438af1f01094814e",
   "whoop_export.py": "2d73dd695b9821059363b477544a644cf10b62ff1cc5f8cad8915ae8db81220b",
-  "dashboard_src/charts.js": "a36c2a797def662d03baa2d42f61e47fda5258e97e9a22e16255b4904f5e8832",
+  "dashboard_src/charts.js": "aad36e4c40b79536d9a2f01a277e44c289540f6ef94254623dabdacf50a82b8a",
   "dashboard_src/core.js": "9083b8accde441af2b96d4f586802186aff00d9cf0bd492813267aebe3bd682f",
   "dashboard_src/index.html": "8101a5a920efde4c76c8fcf51e9711cbeb9a53da839b6f2b3a4dc0405bf0bd18",
   "dashboard_src/orb.js": "9327d384d7a2260e23b1aebc719319536591adf603cef896cc23a1864e94efe2",
@@ -20,10 +20,10 @@
   "dashboard_v3/gym.js": "c626b8885929f1c3934e638a35a851e5e31ae4299ad07699856f586102ea8e2d",
   "dashboard_v3/index.html": "8434d477aeb29bb45fd06d448c0536a49e5d7a27637b7ebfbd4fbb55af6de2e3",
   "dashboard_v3/journal.js": "db2af2662e3ddc76aa8c3cd9398c563ea4303da4a33dbafa21c243a5fb51e260",
-  "dashboard_v3/plan.js": "5330eb5c949de89e7c38dcf552f0df882d3462361ea1146bdaa545cc5d0ee233",
+  "dashboard_v3/plan.js": "36aed5d2037157cc936e33d0fed590bf72382aca19653d4c191372b1d1c22887",
   "dashboard_v3/score.js": "b24381b7b57a064b954a03cd6c0031b0d54f4f7cf81300f2a658a7f6829dff02",
-  "dashboard_v3/season.js": "20eb7839cdecb65c1f734d60acc1504e1aadf11186fdbce236f0389290acdd0f",
+  "dashboard_v3/season.js": "1f0e72bb746a539c35933df219dcd0b2c2218440e1decb326d2633923b96f2a6",
   "dashboard_v3/story.js": "29be7690d125c752cc07fde0f5140ac72858e451a7f1aa5e2c643698376c6ef7",
-  "dashboard_v3/theme.css": "8d712ef5cbe521d6bf17a40374c94247ef11b76e912e96c4d4996f09d2b8f1e6"
+  "dashboard_v3/theme.css": "267190a9a2a61f002320ddc17da54f6cab1e74da474fea53fa1835c5e356bbcd"
  }
 }

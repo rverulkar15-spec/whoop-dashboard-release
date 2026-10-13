@@ -21,8 +21,15 @@ function dayTicks(x0, x1) {
 const yFmtAuto = v => Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-US') : (Math.abs(v) < 10 && v % 1 ? v.toFixed(1) : String(Math.round(v * 10) / 10));
 const legendLine = i => '<svg width="34" height="10" viewBox="0 0 34 10" aria-hidden="true"><line x1="1" y1="5" x2="33" y2="5" class="s' + i + '"/></svg>';
 
+/* on a phone the drawing is made as wide as the screen, so axis text stays readable instead of shrinking with the picture */
+function chartW(want) {
+  try {
+    const z = parseFloat(getComputedStyle(document.body).zoom) || 1, avail = Math.floor(document.documentElement.clientWidth / z) - 76;
+    return Math.max(300, Math.min(want, avail));
+  } catch (e) { return want; }
+}
 function lineChart(o) {
-  const W = o.w || 720, H = o.h || 230, m = { l: 46, r: 14, t: 12, b: 26 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const W = chartW(o.w || 720), H = o.h || 230, m = { l: 46, r: 14, t: 12, b: 26 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
   const series = (o.series || []).filter(s => s.pts.some(p => isNum(p[1])));
   if (!series.length) return '<p class="muted">Not enough data to draw this chart yet.</p>';
   const xs = []; let ys = [];
@@ -66,7 +73,7 @@ function lineChart(o) {
 function barChart(o) {
   const cats = o.cats || [];
   if (!cats.length || !cats.some(c => sum(c.parts.map(p => p.v || 0)) > 0)) return '<p class="muted">Not enough data to draw this chart yet.</p>';
-  const W = o.w || 720, H = o.h || 220, m = { l: 42, r: 10, t: 14, b: 30 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const W = chartW(o.w || 720), H = o.h || 220, m = { l: 42, r: 10, t: 14, b: 30 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
   const totals = cats.map(c => sum(c.parts.map(p => p.v || 0)));
   const ticks = niceTicks(0, Math.max(...totals) * 1.1, 4), y1 = Math.max(last(ticks), Math.max(...totals) * 1.05);
   const Y = v => m.t + (1 - v / y1) * ih, bw = iw / cats.length, barW = Math.min(46, bw * 0.72);
@@ -90,7 +97,7 @@ function barChart(o) {
 function scatter(o) {
   const pts = (o.pts || []).filter(p => isNum(p.x) && isNum(p.y));
   if (pts.length < 3) return '<p class="muted">Not enough points to plot (n=' + pts.length + ').</p>';
-  const W = o.w || 520, H = o.h || 260, m = { l: 46, r: 14, t: 12, b: 36 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const W = chartW(o.w || 520), H = o.h || 260, m = { l: 46, r: 14, t: 12, b: 36 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
   const xv = pts.map(p => p.x), yv = pts.map(p => p.y);
   let x0 = Math.min(...xv), x1 = Math.max(...xv), y0 = Math.min(...yv), y1 = Math.max(...yv);
   const px = (x1 - x0 || 1) * 0.06, py = (y1 - y0 || 1) * 0.08; x0 -= px; x1 += px; y0 -= py; y1 += py;

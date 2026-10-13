@@ -309,3 +309,22 @@ details.fm>summary{cursor:pointer;color:var(--muted);font-size:14px;min-height:3
 .hero .summary{font:500 16.5px/1.5 var(--ui);margin:10px 0 4px}
 .hero .summary b{font-weight:800}
 .hero .xpline{margin-top:6px}
+
+/* wide tables as cards on a phone */
+@media (max-width:600px){
+  table.stack{display:block;border:0}
+  table.stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.stack tbody,table.stack tr{display:block}
+  table.stack tr{border:1px solid var(--line);border-radius:14px;margin:8px 0;padding:8px 12px;background:var(--panel2)}
+  table.stack tr.hl{background:var(--hl)}
+  table.stack td,table.stack th{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border:0;padding:3px 0;text-align:right;width:auto}
+  table.stack td::before{content:attr(data-label);color:var(--muted);font-size:12px;font-weight:600;text-align:left;flex:none;max-width:48%}
+  table.stack td:first-child{display:block;text-align:left;font-weight:700;padding-bottom:5px}
+  table.stack td:first-child::before{display:none}
+  table.stack td.span{display:block;text-align:left;font-weight:700;color:var(--muted)}
+  table.stack td.span::before,table.stack td.blank{display:none}
+  .scroll table.stack{min-width:0}
+}
+table.stack td .v{min-width:0}
+@media (max-width:600px){table.stack td .v{text-align:right}}
+@media (max-width:600px){table.stack tr.sec{border:0;background:transparent;padding:8px 0 0;margin:4px 0 0}}

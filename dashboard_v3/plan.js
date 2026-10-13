@@ -21,7 +21,19 @@ function planOptions(F) {
   }
   const seen = new Set(), uniq = rows.filter(r => seen.has(r.k) ? false : (seen.add(r.k), true));
   const top = Math.max.apply(null, uniq.map(r => r.score)), cut = uniq.findIndex(r => r.score >= top - 0.5);
-  return { H, rows: uniq.slice(0, cut + 1) };       // stop at the first row that reaches the ceiling, more lifts add nothing
+  const out = uniq.slice(0, cut + 1);               // stop at the first row that reaches the ceiling, more lifts add nothing
+  try {                                             // and your own program, when a MacroFactor plan is loaded
+    const gm = typeof gymModel === 'function' ? gymModel() : null;
+    if (gm && gm.prog && typeof gProgAt === 'function') {
+      const days = cand.filter(d => { const a = gProgAt(d); return a && !a.over && a.day && !a.day.rest; });
+      if (days.length) {
+        const lift = new Set(I.lift), train = new Set(I.train); days.forEach(d => { lift.add(d); train.add(d); });
+        const r = fsDay(Object.assign({}, I, { lift, train }), H);
+        if (r) out.push({ k: days.length, days, score: r.score, streak: r.streak, pen: r.pen, prog: true });
+      }
+    }
+  } catch (e) { console.error('plan program', e); }
+  return { H, rows: out };
 }
 
 function planCard() {
@@ -29,18 +41,18 @@ function planCard() {
   const P = planOptions(F), I = F.I, A = F.A, tgt = Math.max(1, C.liftWeekMin || 3);
   if (P.rows.length < 2) return '';
   const done = fsCount(I.lift, P.H - 6, A), rest = P.rows[0], now = F.now.score;
-  const hit = P.rows.find(r => done + r.k >= tgt), best = P.rows.reduce((b, r) => r.score > b.score ? r : b, P.rows[0]);
+  const hit = P.rows.find(r => !r.prog && done + r.k >= tgt), best = P.rows.reduce((b, r) => r.score > b.score ? r : b, P.rows[0]);
   let h = '<section class="card"><div class="sec-h"><h2>Plan your week</h2>' + tag('MODELED') + '</div>';
   h += '<p class="sub">Where the fitness score would land on ' + esc(fmtDayW(P.H)) + ', with everything else as it is today. You have ' + done + ' of ' + tgt + ' lifts in this window so far.</p>';
   h += '<div class="scroll"><table><thead><tr><th>More lifts</th><th>Days</th><th class="n">Score then</th><th class="n">Against today</th></tr></thead><tbody>' +
     P.rows.map(r => {
       const d = r.score - now;
-      return '<tr' + (hit && r.k === hit.k ? ' class="hl"' : '') + '><td>' + (r.k === 0 ? 'None' : r.k) + (hit && r.k === hit.k ? ' (target)' : '') + '</td><td>' + (r.days.length ? esc(r.days.map(x => WKD[wkdOf(x)]).join(', ')) : 'rest') +
+      return '<tr' + (hit && !r.prog && r.k === hit.k ? ' class="hl"' : '') + '><td>' + (r.prog ? 'Your program (' + r.k + ')' : r.k === 0 ? 'None' : r.k) + (hit && !r.prog && r.k === hit.k ? ' (target)' : '') + '</td><td>' + (r.days.length ? esc(r.days.map(x => WKD[wkdOf(x)]).join(', ')) : 'rest') +
         '</td><td class="n">' + nf(r.score, 0) + '</td><td class="n">' + (Math.abs(d) < 0.5 ? 'same' : (d > 0 ? 'up ' : 'down ') + nf(Math.abs(d), 0)) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
-  const gap = best.score - rest.score;
+  const gap = best.score - rest.score, pr = P.rows.find(r => r.prog);
   if (gap >= 1) h += '<p class="st-text">' + (hit && hit.k > 0 ? 'Hitting your target of ' + tgt + ' lifts lands near ' + nf(hit.score, 0) + ', against ' + nf(rest.score, 0) + ' if the rest of the week is off. ' : 'Resting the whole way lands near ' + nf(rest.score, 0) + '. ') +
-    (rest.pen > 0 ? 'The idle penalty alone is ' + nf(rest.pen, 0) + ' points of that. ' : '') + '</p>';
+    (rest.pen > 0 ? 'The idle penalty alone is ' + nf(rest.pen, 0) + ' points of that. ' : '') + (pr ? 'Following your program for the rest of the week lands near ' + nf(pr.score, 0) + '.' : '') + '</p>';
   h += formula('the same fitness score formula run for ' + fmtDay(P.H) + ', with the listed days counted as lifting days spread across the open days. Hours slept, recovery trend, cardio and personal bests are held as they stand today, so a good week of sleep or a new best would only add to this. Open days run from ' + fmtDay(I.lift.has(A) ? A + 1 : A) + '. It is a what-if, not a prediction.');
   return h + '</section>';
 }

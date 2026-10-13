@@ -52,6 +52,7 @@ WHAT YOU GET
   a fitness score (0 to 100, built from lifting consistency, strength gains, cardio, recovery trend and sleep, with days off costing points) with a history chart, what moved it and the next best move, a plan your week what-if, a notable lately list, a lifting and recovery table, a plateau watch on Training and badges, a 90 day map, growth against last month and weekly targets. Theme and text size are in More.
   Dashboard: the Progress section compares week over week, month over month and beginning to now.
   It shows where you grew and where to look, plus charts and personal records.
+  On a phone, wide tables turn into one card per row and charts are drawn at screen width so the axis text stays readable.
   The email and the dashboard now count days the same way, so the 28 day averages in the email match the dashboard to the decimal.
   Morning email: your recovery, last night, a Notable lately line when a 7 day average is a record, last 28 days against the 28 before, and an early warning
   line when HRV, resting heart rate, skin temperature and breathing rate drift the wrong way together.
