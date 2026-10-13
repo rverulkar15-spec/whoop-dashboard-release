@@ -288,7 +288,7 @@ def parse_export(path):
 # ---------------------------------------------------------------- archive and discovery
 
 def empty():
-    return {"version": VERSION, "sessions": [], "muscles": {}, "muscle_volume": {}, "program": {}, "history": {}, "body": {}, "source": {"files": []}}
+    return {"version": VERSION, "sessions": [], "muscles": {}, "muscle_volume": {}, "program": {}, "history": {}, "body": {}, "source": {"files": [], "per_hand": True}}
 
 
 def export_date(fname, mtime):
@@ -559,6 +559,15 @@ def refresh(here, archive_path, log):
             arch = empty()
         known = {(f.get("name"), f.get("size")) for f in arch.get("source", {}).get("files", [])}
         changed = False
+        if arch.get("sessions") and not (arch.get("source") or {}).get("per_hand"):
+            # one time fix for an archive built before dumbbell weights were stored per hand: halve them, then mark it done
+            for s in arch["sessions"]:
+                for x in s.get("sets", []):
+                    if x.get("w") is not None and "dumbbell" in (x.get("ex") or "").lower():
+                        x["w"] = round(x["w"] / 2.0, 4)
+            arch.setdefault("source", {"files": []})["per_hand"] = True
+            changed = True
+            log("Gym archive updated: dumbbell weights are now stored per hand")
         for p in find_exports(here):
             key = (os.path.basename(p), os.path.getsize(p))
             if key in known:
