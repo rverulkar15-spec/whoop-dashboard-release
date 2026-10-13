@@ -520,7 +520,7 @@ def merge_log(arch, sessions, fname, mtime, size):
                 s["workout"] = same[0].get("workout")
             if s["workout"] and not s.get("name"):
                 pn = s.get("program") or (arch.get("program") or {}).get("name") or ""
-                s["name"] = ("%s (Workout %s)" % (pn, s["workout"])) if pn else "Workout " + s["workout"]
+                s["name"] = pn or "Gym session"
                 s["program"] = s.get("program") or pn
         old = [x for x in same if x.get("workout") == s.get("workout")]
         mus = s.pop("muscles", None)

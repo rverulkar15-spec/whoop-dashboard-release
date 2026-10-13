@@ -5,6 +5,48 @@ const G_DB = /dumbbell/i;      // weights are stored per hand, so volume counts 
 const G_BW = /(chin|pull)[- ]?up|(^|\s)dips?(\s|$)/i;     // lifts where your body weight is part of the load
 const G_SETS_GOAL = 10;                    // weekly hard sets per muscle often linked to growth (a guide, not a rule)
 
+/* What a workout trains, read from its exercises (never a letter). Works for any program, so it stays right when the plan changes. */
+const GF_RULES = [
+  ['quad',  /squat|leg press|leg extension|hack|lunge|split squat/i],
+  ['ham',   /romanian|deadlift|hamstring|hip hinge|glute ham|hip thrust|good morning|back extension|abduction|adduction/i],
+  ['calf',  /calf/i],
+  ['core',  /crunch|ab wheel|plank|leg raise|sit-?up/i],
+  ['shoulder', /overhead press|lateral raise|rear delt|face pull|shoulder press|upright row|reverse (pec|fly)/i],
+  ['triceps', /tricep|pushdown|skull|dip\b|kickback|overhead extension/i],
+  ['biceps', /curl/i],
+  ['back',  /row|pulldown|pull-?down|chin|pull-?up|pullover|lat\b|shrug/i],
+  ['chest', /bench|chest|pec|fly|incline|decline|push-?up|press/i]
+];
+const GF_BIG = /squat|leg press|romanian|deadlift|hip thrust|bench|overhead press|(^|\s)row|chin|pull-?up|incline.*press|dip\b/i;   // big compound lifts count double
+function gFocusOf(name) { for (const r of GF_RULES) if (r[1].test(name)) return r[0]; return null; }
+function gFocus(names) {
+  const c = {}, first = {}; (names || []).forEach((n, i) => { const k = gFocusOf(n); if (k) { c[k] = (c[k] || 0) + (GF_BIG.test(n) ? 2 : 1); if (first[k] == null) first[k] = i; } });
+  const legK = ['quad', 'ham', 'calf'], legN = legK.reduce((a, k) => a + (c[k] || 0), 0);
+  const upK = ['chest', 'back', 'shoulder', 'biceps', 'triceps'], upN = upK.reduce((a, k) => a + (c[k] || 0), 0);
+  const top = (ks, n) => ks.filter(k => c[k]).sort((a, b) => c[b] - c[a] || first[a] - first[b]).slice(0, n);
+  const nm = { chest: 'chest', back: 'back', shoulder: 'shoulders', biceps: 'biceps', triceps: 'triceps' };
+  if (!legN && !upN) return { full: 'full body', short: 'Body' };
+  if (legN >= upN + 2 || (legN > upN && legN >= 4)) {
+    const q = c.quad || 0, h = (c.ham || 0);
+    const side = q > h ? 'quad focused' : h > q ? 'hamstring and glute focused' : 'quads and hamstrings';
+    return { full: 'legs, ' + side, short: 'Legs' };
+  }
+  const t = top(upK, 3).map(k => nm[k]);
+  if (!t.length) return { full: 'full body', short: 'Body' };
+  const lab = t.length > 1 ? t.slice(0, -1).join(', ') + ' and ' + t[t.length - 1] : t[0];
+  const mixed = legN >= 2 ? ' with some legs' : '';
+  return { full: 'upper body, ' + lab + mixed, short: 'Upper' };
+}
+function gDayFocus(day) { return gFocus((day.exercises || []).filter(e => !e.skipped).map(e => e.name)); }
+function gSessFocus(s) {
+  // one steady label per workout slot: use the program day when the plan has it, else the exercises you usually do in that slot
+  const g = GYM, L = s.workout;
+  if (g && g.prog && L) for (const w of g.prog.plan) { const d = w.days.find(x => !x.rest && x.workout === L); if (d) return gDayFocus(d); }
+  const rows = g && L ? g.sessions.filter(x => x.workout === L) : [s], cnt = {};
+  rows.forEach(x => { const u = new Set((x.sets || []).map(y => y.ex)); u.forEach(e => { cnt[e] = (cnt[e] || 0) + 1; }); });
+  return gFocus(Object.keys(cnt).filter(e => cnt[e] >= Math.max(1, rows.length * 0.4)));
+}
+
 function gDi(s) { const p = String(s).split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / DAY; }
 function gLb(v) { return C.uWeight === 'lb' ? v : v / KG_LB; }
 function gUnit() { return C.uWeight === 'lb' ? 'lb' : 'kg'; }
@@ -178,23 +220,23 @@ function gymCallLines(band, dayDi, lifted) {
   if (a.day.rest) {
     const nx = gNext(dayDi + 1, dayDi);
     if (band === 'high') out.head = 'Green morning, rest day for lifting'; else if (band === 'mid') out.head = 'Solid morning, rest day for lifting';
-    out.push('Rest day in your program (' + gCycleText(a) + ').' + (nx ? ' Next up: Workout ' + esc(nx.day.workout) + ' on ' + esc(fmtDayW(nx.di)) + '.' : '') + (band === 'high' ? ' Green morning, so zone 2 or a run fits well.' : ''));
+    out.push('Rest day in your program (' + gCycleText(a) + ').' + (nx ? ' Next up: ' + esc(gDayFocus(nx.day).full) + ' on ' + esc(fmtDayW(nx.di)) + '.' : '') + (band === 'high' ? ' Green morning, so zone 2 or a run fits well.' : ''));
   } else {
-    const st = gStatus(dayDi, dayDi), L = esc(a.day.workout);
-    if (st === 'done' || lifted) out.push('Workout ' + L + ' is done for today. Keep the rest of the day easy.');
+    const st = gStatus(dayDi, dayDi), LF = esc(gDayFocus(a.day).full);
+    if (st === 'done' || lifted) out.push('Your ' + LF + ' workout is done for today. Keep the rest of the day easy.');
     else {
       const first = a.day.exercises.find(e => !e.skipped), pl = first ? gExPlan(first, dayDi) : null;
       const sg = pl && pl.groups[0] && pl.groups[0].sg;
       const open = first ? ' It opens with ' + esc(first.name) + (sg ? ', try about ' + esc(gTry(sg.w)) + ' for the first set' : '') + '.' : '';
-      if (band === 'high') out.push('Workout ' + L + ' is on your program today (' + gCycleText(a) + '). Green light: go as planned and push the top sets.' + open);
-      else if (band === 'mid') out.push('Workout ' + L + ' is on your program today (' + gCycleText(a) + '). Train it as planned and leave a rep or two in reserve on the failure sets.' + open);
-      else out.push('Workout ' + L + ' is on your program today, but recovery is low. Either move it back a day, or do it lighter: about 10 percent off the weights and every set stopped 3 reps short of failure.');
+      if (band === 'high') out.push('Today is ' + LF + ' (' + gCycleText(a) + '). Green light: go as planned and push the top sets.' + open);
+      else if (band === 'mid') out.push('Today is ' + LF + ' (' + gCycleText(a) + '). Train it as planned and leave a rep or two in reserve on the failure sets.' + open);
+      else out.push('Today is ' + LF + ', but recovery is low. Either move it back a day, or do it lighter: about 10 percent off the weights and every set stopped 3 reps short of failure.');
     }
   }
   for (let d = dayDi - 1; d >= dayDi - 3; d--) {
     if (gStatus(d, dayDi) !== 'missed') continue;
     const a2 = gProgAt(d), w = M.workouts.some(x => x.di === d && x.scored && x.sport === 'weightlifting');
-    out.push('Workout ' + esc(a2.day.workout) + ' from ' + esc(fmtDayW(d)) + ' is not in your MacroFactor log' + (w ? ', though WHOOP recorded a lift that day, so it may just be unlogged' : '') + '.');
+    out.push('Your ' + esc(gDayFocus(a2.day).full) + ' workout from ' + esc(fmtDayW(d)) + ' is not in your MacroFactor log' + (w ? ', though WHOOP recorded a lift that day, so it may just be unlogged' : '') + '.');
     break;
   }
   return out;
@@ -240,7 +282,7 @@ function gymDayInfo(di) {
   if (!ss.length) return 'Gym: lifting logged in MacroFactor (older export, no set detail).';
   return ss.map(s => {
     const work = s.sets.filter(gWork), vol = sum(work.map(x => (isNum(x.w) && isNum(x.reps) ? (x.w + (g.bw && G_BW.test(x.ex) ? g.bw : 0)) * x.reps * (G_DB.test(x.ex) ? 2 : 1) : 0)));
-    return 'Gym: ' + (s.workout ? 'Workout ' + esc(s.workout) + ', ' : '') + work.length + ' working sets, ' + (s.duration_s ? Math.round(s.duration_s / 60) + ' min, ' : '') + esc(gVol(vol)) + ' moved.';
+    return 'Gym: ' + (s.workout ? esc(gSessFocus(s).full) + ', ' : '') + work.length + ' working sets, ' + (s.duration_s ? Math.round(s.duration_s / 60) + ' min, ' : '') + esc(gVol(vol)) + ' moved.';
   }).join(' ');
 }
 function gymWeekRow(ws, we) {          // for the weekly targets card: program workouts done against planned in a calendar week
@@ -275,8 +317,8 @@ function gymHead(g, today) {
     for (let k = 0; k < 7; k++) {
       const di = s0 + k, a = gProgAt(di), st = gStatus(di, today), rest = !a || a.day.rest;
       const cls = rest ? 'rest' : st === 'done' || st === 'shifted' ? 'done' : st === 'missed' ? 'miss' : st === 'today' ? 'now' : 'up';
-      const lab = fmtDayW(di) + ': ' + (rest ? 'rest day' : 'Workout ' + a.day.workout + ', ' + (st === 'done' ? 'done' : st === 'shifted' ? 'done on another day' : st === 'missed' ? 'not logged' : st === 'today' ? 'today' : 'coming up'));
-      dots += '<div class="gd ' + cls + (di === today ? ' tdy' : '') + '" role="img" aria-label="' + esc(lab) + '"><small>' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][wkdOf(di)] + '</small><b>' + (rest ? '' : esc(a.day.workout)) + '</b></div>';
+      const lab = fmtDayW(di) + ': ' + (rest ? 'rest day' : gDayFocus(a.day).full + ', ' + (st === 'done' ? 'done' : st === 'shifted' ? 'done on another day' : st === 'missed' ? 'not logged' : st === 'today' ? 'today' : 'coming up'));
+      dots += '<div class="gd ' + cls + (di === today ? ' tdy' : '') + '" role="img" aria-label="' + esc(lab) + '"><small>' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][wkdOf(di)] + '</small><b>' + (rest ? '' : esc(gDayFocus(a.day).short)) + '</b></div>';
     }
     h += '<div class="gweek">' + dots + '</div><div class="legend"><span><s style="background:var(--accent)"></s>done</span><span><s style="background:var(--bad)"></s>not in the log</span><span><s style="background:var(--inset);border:1px solid var(--line)"></s>coming up or rest</span></div>';
   } else h += '<p class="sub">Your gym log is loaded, but the program schedule could not be matched to your sessions, so the weekly plan is off. Lift progress below still works.</p>';
@@ -304,7 +346,7 @@ function gymNext(g, today) {
     inner += '</div>';
   });
   inner += formula('suggested load = a planning figure (an estimated one rep max, never shown elsewhere) from your best working set last time, divided by (1 + (planned reps + planned reps in reserve) / 30). The estimate is the Epley formula with reps in reserve counted as reps you could still have done. Body weight is added for chin ups and dips. Marked rough when the plan is above 12 reps total, where the formula is least reliable. Warm up sets are ignored.');
-  return gFold('gymnext', 'Next: Workout ' + esc(nx.day.workout) + ', ' + esc(label), 'MODELED', inner, true);
+  return gFold('gymnext', 'Next: ' + esc(gDayFocus(nx.day).full) + ', ' + esc(label), 'MODELED', inner, true);
 }
 
 function gymLifts(g, ref) {
@@ -352,7 +394,7 @@ function gymSessions(g, today) {
   ss.forEach(s => {
     const work = s.sets.filter(gWork), vol = sum(work.map(x => (isNum(x.w) && isNum(x.reps) ? (x.w + (g.bw && G_BW.test(x.ex) ? g.bw : 0)) * x.reps * (G_DB.test(x.ex) ? 2 : 1) : 0)));
     const wl = M.workouts.filter(w => w.di === s.di && w.scored && w.sport === 'weightlifting')[0], rec = recOf(s.di);
-    inner += '<div class="gsr"><div class="gsh"><b>' + esc(fmtDayW(s.di)) + '</b><span>' + (s.workout ? 'Workout ' + esc(s.workout) : esc(s.name)) + '</span></div><div class="gss">' + work.length + ' working sets · ' + (s.duration_s ? Math.round(s.duration_s / 60) + ' min · ' : '') + esc(gVol(vol)) + ' moved' +
+    inner += '<div class="gsr"><div class="gsh"><b>' + esc(fmtDayW(s.di)) + '</b><span>' + (s.workout ? esc(gSessFocus(s).full) : esc(s.name)) + '</span></div><div class="gss">' + work.length + ' working sets · ' + (s.duration_s ? Math.round(s.duration_s / 60) + ' min · ' : '') + esc(gVol(vol)) + ' moved' +
       (rec != null ? ' · recovery that morning <b style="color:' + bandOf(rec).color + '">' + nf(rec, 0) + '%</b>' : '') + (wl ? ' · WHOOP strain ' + nf(wl.strain, 1) : ' · no WHOOP lift recorded') + '</div></div>';
   });
   inner += '</div>';
