@@ -49,10 +49,10 @@ WHAT YOU GET
   for every lift, what the longest break cost, what your body did in lifting weeks, rough patches in recovery, body
   weight and steps, a month by month table and the next marks to beat. A short version sits at the top of Today.
   The Season: bottom tabs (Today, Story, Training, Sleep, Progress, Goals, More; the old Drivers tab is now at the bottom of Progress), dark and light themes,
-  a fitness score (0 to 100, built from lifting consistency, strength gains, cardio, recovery trend and sleep, with days off costing points) with a history chart, what moved it and the next best move, a plan your week what-if, a notable lately list, a lifting and recovery table and badges, a 90 day map, growth against last month and weekly targets. Theme and text size are in More.
+  a fitness score (0 to 100, built from lifting consistency, strength gains, cardio, recovery trend and sleep, with days off costing points) with a history chart, what moved it and the next best move, a plan your week what-if, a notable lately list, a lifting and recovery table, a plateau watch on Training and badges, a 90 day map, growth against last month and weekly targets. Theme and text size are in More.
   Dashboard: the Progress section compares week over week, month over month and beginning to now.
   It shows where you grew and where to look, plus charts and personal records.
-  Morning email: your recovery, last night, last 28 days against the 28 before, and an early warning
+  Morning email: your recovery, last night, a Notable lately line when a 7 day average is a record, last 28 days against the 28 before, and an early warning
   line when HRV, resting heart rate, skin temperature and breathing rate drift the wrong way together.
   Weekly review email: last week against the week before, and first 28 days against the last 28.
   Sent after the first sync that follows each Monday.

@@ -9,6 +9,7 @@ function seasonDefaults() {
   if (C.goalRun == null) C.goalRun = 5;
   if (C.goalSleep == null) C.goalSleep = 7.5;
 }
+function lcl(s) { return String(s).toLowerCase().replace(/\bhrv\b/g, 'HRV').replace(/\brhr\b/g, 'RHR'); }
 function sget(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function sset(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked: setting lasts for this visit only */ } }
 
@@ -242,7 +243,6 @@ function renderSeason() {
   let h = '<div class="pagehead"><h1>Where you stand</h1><p>' + esc(fmtDayW(M.anchor)) + '. ' + M.days.length + ' days of WHOOP data on file.</p></div>';
 
   try { h += freshnessNote(); } catch (e) { console.error('freshness', e); }
-  try { h += storyStrip(); } catch (e) { console.error('story strip', e); }
   try { h += todaysCall(); } catch (e) { console.error('call', e); }
 
   // hero
@@ -251,8 +251,8 @@ function renderSeason() {
   if (S) {
     h += '<span class="verdict ' + S.verdict.k + '">' + (S.verdict.k === 'up' ? '▲' : S.verdict.k === 'down' ? '▼' : '●') + ' ' + esc(S.verdict.t) + '</span>';
     h += '<p class="summary">Against your own 90 day average, of ' + S.judged + ' measures <b>' + S.t.length + '</b> are better, <b>' + S.w.length + '</b> worse and ' + S.s.length + ' about the same.' +
-      (S.top ? ' Biggest gain: ' + esc(S.top.r.label.replace(/ \(.*\)$/, '').toLowerCase()) + ', ' + esc(S.top.r.f(S.top.p.v)) + ' to ' + esc(S.top.r.f(S.top.c.v)) + '.' : '') +
-      (S.watch ? ' Worth a look: ' + esc(S.watch.r.label.replace(/ \(.*\)$/, '').toLowerCase()) + ', ' + esc(S.watch.r.f(S.watch.p.v)) + ' to ' + esc(S.watch.r.f(S.watch.c.v)) + '.' : '') + '</p>';
+      (S.top ? ' Biggest gain: ' + esc(lcl(S.top.r.label.replace(/ \(.*\)$/, ''))) + ', ' + esc(S.top.r.f(S.top.p.v)) + ' to ' + esc(S.top.r.f(S.top.c.v)) + '.' : '') +
+      (S.watch ? ' Worth a look: ' + esc(lcl(S.watch.r.label.replace(/ \(.*\)$/, ''))) + ', ' + esc(S.watch.r.f(S.watch.p.v)) + ' to ' + esc(S.watch.r.f(S.watch.c.v)) + '.' : '') + '</p>';
   } else h += '<span class="verdict flat">● Too early to call</span><p class="summary">The comparison needs about 40 days of data. You have ' + M.days.length + ' so far.</p>';
   try { h += fsHeroExtra(); } catch (e) { console.error('fitness hero', e); }
   h += '</div></div>';
@@ -262,7 +262,7 @@ function renderSeason() {
     '<div class="cell"><small>Green days, last 28</small><b>' + g28 + ' of ' + green28.length + '</b><span>recovery ' + C.bandHi + ' or higher</span></div>' +
     '<div class="cell"><small>Lifting target streak</small><b>' + streak + (streak === 1 ? ' week' : ' weeks') + '</b><span>' + C.liftWeekMin + ' or more lifts per full week</span></div>' +
     '<div class="cell"><small>Badges</small><b>' + earned + ' of ' + badges.length + '</b><span>see below</span></div></div>';
-  if (recent.length) h += '<div class="chips">' + recent.map(r => '<span class="chipx">★ New: ' + esc(r.label.toLowerCase()) + ', ' + esc(r.v) + '</span>').join('') + '</div>';
+  if (recent.length) h += '<div class="chips">' + recent.map(r => '<span class="chipx">★ New: ' + esc(lcl(r.label)) + ', ' + esc(r.v) + '</span>').join('') + '</div>';
   h += '</section>';
 
   // early warning
@@ -271,6 +271,7 @@ function renderSeason() {
     else h += '<div class="ew ok"><b>Early warning: clear.</b> ' + (W.sig.length ? 'One signal is off (' + esc(W.sig[0]) + '). It takes two, or one strong one, to raise a flag.' : 'HRV, resting heart rate, skin temperature and breathing rate are all near your usual.') + ' <span class="muted">Checked against your last 28 days, ' + W.usable + ' of 4 signals available.</span></div>';
   }
 
+  try { h += storyStrip(); } catch (e) { console.error('story strip', e); }
   try { h += notableCard(); } catch (e) { console.error('notable', e); }
 
   // targets
@@ -296,7 +297,7 @@ function renderSeason() {
   const arc = $('#lvlArc'); if (arc) requestAnimationFrame(() => requestAnimationFrame(() => arc.setAttribute('stroke-dashoffset', arc.dataset.to)));
   seasonDetail(SEASON_SEL != null && SEASON_SEL <= M.anchor && SEASON_SEL >= M.days[0].di ? SEASON_SEL : M.anchor);
   renderTargetsEditor(); renderLevelsInfo(X);
-  const gb = $('#gymBody'); if (gb && typeof renderGym === 'function') { try { gb.innerHTML = renderGym(); } catch (e) { console.error('gym', e); gb.innerHTML = '<div class="banner err">The strength section could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; } }
+  const gb = $('#gymBody'); if (gb && typeof renderGym === 'function') { try { gb.innerHTML = renderGym() + (typeof plateauCard === 'function' ? plateauCard() : ''); } catch (e) { console.error('gym', e); gb.innerHTML = '<div class="banner err">The strength section could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; } }
   try { renderStory(); } catch (e) { console.error('story', e); const sb = $('#storyBody'); if (sb) sb.innerHTML = '<div class="banner err">The story could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; }
   const lv = $('#leversBody'); if (lv) { try { lv.innerHTML = (typeof fsCard === 'function' ? fsCard() : '') + (typeof liftReadinessCard === 'function' ? liftReadinessCard() : '') + leversCard() + (typeof journalCard === 'function' ? journalCard() : ''); } catch (e) { console.error('levers', e); lv.innerHTML = ''; } }
 }

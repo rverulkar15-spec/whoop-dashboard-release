@@ -306,3 +306,6 @@ details.fm>summary{cursor:pointer;color:var(--muted);font-size:14px;min-height:3
 :root[data-theme="light"] .sg0{color:#fff!important}
 .dh{border:1px solid var(--gold);background:var(--gold-soft);border-radius:16px;padding:10px 14px;margin:14px 0 0;font-size:14px;line-height:1.45}
 .dh b{color:var(--text)}
+.hero .summary{font:500 16.5px/1.5 var(--ui);margin:10px 0 4px}
+.hero .summary b{font-weight:800}
+.hero .xpline{margin-top:6px}

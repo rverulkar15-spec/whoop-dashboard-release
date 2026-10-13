@@ -35,7 +35,7 @@ function planCard() {
   h += '<div class="scroll"><table><thead><tr><th>More lifts</th><th>Days</th><th class="n">Score then</th><th class="n">Against today</th></tr></thead><tbody>' +
     P.rows.map(r => {
       const d = r.score - now;
-      return '<tr' + (hit && r.k === hit.k ? ' class="hl"' : '') + '><td>' + (r.k === 0 ? 'None' : r.k) + (hit && r.k === hit.k ? ' (hits your target)' : '') + '</td><td>' + (r.days.length ? esc(r.days.map(x => WKD[wkdOf(x)]).join(', ')) : 'rest') +
+      return '<tr' + (hit && r.k === hit.k ? ' class="hl"' : '') + '><td>' + (r.k === 0 ? 'None' : r.k) + (hit && r.k === hit.k ? ' (target)' : '') + '</td><td>' + (r.days.length ? esc(r.days.map(x => WKD[wkdOf(x)]).join(', ')) : 'rest') +
         '</td><td class="n">' + nf(r.score, 0) + '</td><td class="n">' + (Math.abs(d) < 0.5 ? 'same' : (d > 0 ? 'up ' : 'down ') + nf(Math.abs(d), 0)) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
   const gap = best.score - rest.score;
@@ -67,11 +67,11 @@ function notableItems() {
     const ser = []; for (let di = first + 6; di <= A; di++) { const v = valsIn(M, d[0], di - 6, di); if (v.length >= 5) ser.push({ di, v: mean(v) }); }
     if (ser.length < 35) return;
     const cur = ser[ser.length - 1], hist = ser.slice(0, -1), good = d[2] === 'up' ? (a, b) => a > b : (a, b) => a < b;
-    if (hist.every(x => good(cur.v, x.v))) { out.push({ w: 3, t: 'Your 7 day ' + d[1].toLowerCase() + ' average, ' + d[3](cur.v) + ', is the best in your ' + stD(A - first + 1) + ' of WHOOP data.' }); return; }
+    if (hist.every(x => good(cur.v, x.v))) { out.push({ w: 3, t: 'Your 7 day ' + lcl(d[1]) + ' average, ' + d[3](cur.v) + ', is the best on file.' }); return; }
     const prev = hist.slice().reverse().find(x => !good(cur.v, x.v)); // the latest day that was as good or better
-    if (prev && A - prev.di >= 21 && good(cur.v, hist[hist.length - 1].v)) out.push({ w: 2, t: 'Your 7 day ' + d[1].toLowerCase() + ' average, ' + d[3](cur.v) + ', is the best in ' + stD(A - prev.di) + '.' });
+    if (prev && A - prev.di >= 21 && good(cur.v, hist[hist.length - 1].v)) out.push({ w: 2, t: 'Your 7 day ' + lcl(d[1]) + ' average, ' + d[3](cur.v) + ', is the best in ' + stD(A - prev.di) + '.' });
     const worst = d[2] === 'up' ? (a, b) => a < b : (a, b) => a > b;
-    if (hist.every(x => worst(cur.v, x.v))) out.push({ w: 3, t: 'Your 7 day ' + d[1].toLowerCase() + ' average, ' + d[3](cur.v) + ', is the worst on file. Worth easing off and sleeping more.' });
+    if (hist.every(x => worst(cur.v, x.v))) out.push({ w: 3, t: 'Your 7 day ' + lcl(d[1]) + ' average, ' + d[3](cur.v) + ', is the worst on file. Worth easing off and sleeping more.' });
   });
   const cur = (pred) => { let n = 0; for (let di = A; di >= first; di--) { const d = M.days.find(x => x.di === di && x.okRec); if (d && pred(d)) n++; else break; } return n; };
   const g = cur(d => d.recovery >= C.bandHi); if (g >= 3) out.push({ w: 1, t: g + ' green recovery days in a row.' });
@@ -99,4 +99,28 @@ function liftReadinessCard() {
   return '<section class="card"><div class="sec-h"><h2>Lifting and recovery</h2>' + tag('MEASURED') + '</div><p class="sub">For each logged lifting day, the WHOOP recovery score that morning and whether any lift set a new best.</p>' +
     '<div class="scroll"><table><thead><tr><th>Recovery that morning</th><th class="n">Sessions</th><th class="n">With a new best</th><th class="n">Share</th></tr></thead><tbody>' + row('high') + row('mid') + row('low') + '</tbody></table></div><p class="st-text">' + esc(read) + '</p>' +
     formula('a session counts once per day, using the recovery score of the same day. New best uses your rule: a heavier weight, or the same weight for more reps. A band needs 5 sessions before it is compared. This shows a pattern in your own log, not proof that recovery causes it; early sessions in a program also set bests more easily.') + '</section>';
+}
+
+/* ---------- Plateau watch: lifts that have not set a new best for a while (MEASURED from your log) ---------- */
+function plateauItems() {
+  const g = typeof gymModel === 'function' ? gymModel() : null; if (!g) return [];
+  const out = [];
+  Object.keys(g.E).forEach(ex => {
+    const E = g.E[ex]; if (E.length < 8) return;
+    const lastE = E[E.length - 1]; if (M.anchor - lastE.di > 35) return;           // not being trained now
+    const mine = g.prs.filter(p => p.ex === ex), lastPr = mine.length ? mine[mine.length - 1].di : E[2].di;
+    const since = E.filter(p => p.di > lastPr).length, days = M.anchor - lastPr;
+    if (since < 4 || days < 21) return;
+    let top = E[0]; E.forEach(p => { if (p.w > top.w || (p.w === top.w && (p.reps || 0) > (top.reps || 0))) top = p; });
+    out.push({ ex, since, days, top, lastW: lastE.w, lastR: lastE.reps });
+  });
+  return out.sort((a, b) => b.days - a.days).slice(0, 5);
+}
+function plateauCard() {
+  const it = plateauItems(); if (!it.length) return '';
+  const rp = r => nf(r, r % 1 ? 1 : 0), fmt = (ex, p) => gWt(ex, p.w) + (p.reps ? ' for ' + rp(p.reps) : '');
+  return '<section class="card"><div class="sec-h"><h2>Plateau watch</h2>' + tag('MEASURED') + '</div><p class="sub">Lifts you are still training that have not set a new best for a while. A flat stretch is normal. If several lifts sit here together and your recovery trend is down, a lighter week is the usual answer.</p>' +
+    '<div class="scroll"><table><thead><tr><th>Lift</th><th class="n">Sessions since a best</th><th class="n">Days</th><th class="n">Best so far</th><th class="n">Last session</th></tr></thead><tbody>' +
+    it.map(x => '<tr><td>' + esc(x.ex) + '</td><td class="n">' + x.since + '</td><td class="n">' + x.days + '</td><td class="n">' + esc(fmt(x.ex, x.top)) + '</td><td class="n">' + esc(gWt(x.ex, x.lastW) + (x.lastR ? ' for ' + rp(x.lastR) : '')) + '</td></tr>').join('') + '</tbody></table></div>' +
+    formula('a best is a heavier weight, or the same weight for more reps, than any earlier session on that lift. A lift is listed when it has at least 8 sessions, was trained in the last 35 days, and has had at least 4 sessions and 21 days since its last best. Weights are the ones you logged, never estimates.') + '</section>';
 }

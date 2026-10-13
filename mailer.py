@@ -203,10 +203,48 @@ def model_days(archive):
             "inbed": ib, "asleep": sleep_hours(sl) * 3600000.0,
             "need": sum(parts) / 3600000.0 if all(isinstance(x, (int, float)) for x in parts) else None,
             "recovery": rs.get("recovery_score") if r and r.get("score_state") == "SCORED" and not rs.get("user_calibrating") else None,
+            "hrv": rs.get("hrv_rmssd_milli") if r and r.get("score_state") == "SCORED" and not rs.get("user_calibrating") else None,
+            "rhr": rs.get("resting_heart_rate") if r and r.get("score_state") == "SCORED" and not rs.get("user_calibrating") else None,
             "strain": cs.get("strain") if c.get("end") and cs.get("strain") is not None and (length is None or length <= LONG_H) else None,
         })
     out.sort(key=lambda d: d["di"])
     return out
+
+
+def _dlabel(di):
+    d = datetime.fromtimestamp(di * 86400, timezone.utc)
+    return "%s %d" % (d.strftime("%b"), d.day)
+
+
+def notable_lines(days):
+    """Records in your own 7 day averages. Same rule as the dashboard card Notable lately."""
+    if not days:
+        return []
+    first, last = days[0]["di"], days[-1]["di"]
+    if last - first < 42:
+        return []
+    defs = [("hrv", "HRV", True, "%.0f ms", 1.0), ("rhr", "resting heart rate", False, "%.0f bpm", 1.0),
+            ("recovery", "recovery", True, "%.0f%%", 1.0), ("asleep", "hours asleep", True, "%.1f h", 1.0 / 3600000.0)]
+    out = []
+    for key, name, up, fmt, scale in defs:
+        series = []
+        for di in range(first + 6, last + 1):
+            vals = [d[key] for d in days if di - 6 <= d["di"] <= di and isinstance(d.get(key), (int, float))]
+            if len(vals) >= 5:
+                series.append((di, sum(vals) / len(vals)))
+        if len(series) < 35:
+            continue
+        cur, hist = series[-1], series[:-1]
+        better = (lambda a, b: a > b) if up else (lambda a, b: a < b)
+        if all(better(cur[1], h[1]) for h in hist):
+            out.append("Your 7 day %s average, %s, is the best on file." % (name, fmt % (cur[1] * scale)))
+            continue
+        prev = next((h for h in reversed(hist) if not better(cur[1], h[1])), None)
+        if prev and last - prev[0] >= 21 and better(cur[1], hist[-1][1]):
+            out.append("Your 7 day %s average, %s, is the best in %d days." % (name, fmt % (cur[1] * scale), last - prev[0]))
+        if all((not better(cur[1], h[1])) and cur[1] != h[1] for h in hist):
+            out.append("Your 7 day %s average, %s, is the worst on file. Worth easing off and sleeping more." % (name, fmt % (cur[1] * scale)))
+    return out[:3]
 
 
 def _median(xs):
@@ -335,6 +373,12 @@ def build(archive, now=None):
         cl = story + cl
     if cl:
         lines += ["", "TODAY'S CALL"] + cl
+    try:
+        nl = notable_lines(model_days(archive))
+    except Exception:
+        nl = []
+    if nl:
+        lines += ["", "NOTABLE LATELY"] + nl
     w, wc, wp = windows(archive, now)
     lines += ["", "LAST 28 DAYS vs the 28 BEFORE (averages, n = days with data)"]
     moves = []
