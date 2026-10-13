@@ -1,6 +1,7 @@
 /* ---------- Gym log from MacroFactor: model, program plan, Strength section ---------- */
 /* Weights in the export are pounds. They are shown in your unit setting. Lift progress uses the heaviest weight actually lifted, never an estimate. */
 var GYM;                                   // undefined until first use, then the model or null
+const G_DB = /dumbbell/i;      // weights are stored per hand, so volume counts both hands
 const G_BW = /(chin|pull)[- ]?up|(^|\s)dips?(\s|$)/i;     // lifts where your body weight is part of the load
 const G_SETS_GOAL = 10;                    // weekly hard sets per muscle often linked to growth (a guide, not a rule)
 
@@ -238,7 +239,7 @@ function gymDayInfo(di) {
   const ss = g.byDi.get(di) || [];
   if (!ss.length) return 'Gym: lifting logged in MacroFactor (older export, no set detail).';
   return ss.map(s => {
-    const work = s.sets.filter(gWork), vol = sum(work.map(x => (isNum(x.w) && isNum(x.reps) ? (x.w + (g.bw && G_BW.test(x.ex) ? g.bw : 0)) * x.reps : 0)));
+    const work = s.sets.filter(gWork), vol = sum(work.map(x => (isNum(x.w) && isNum(x.reps) ? (x.w + (g.bw && G_BW.test(x.ex) ? g.bw : 0)) * x.reps * (G_DB.test(x.ex) ? 2 : 1) : 0)));
     return 'Gym: ' + (s.workout ? 'Workout ' + esc(s.workout) + ', ' : '') + work.length + ' working sets, ' + (s.duration_s ? Math.round(s.duration_s / 60) + ' min, ' : '') + esc(gVol(vol)) + ' moved.';
   }).join(' ');
 }
@@ -349,7 +350,7 @@ function gymSessions(g, today) {
   const recOf = di => { const d = M.days.find(x => x.di === di && x.okRec); return d ? d.recovery : null; };
   let inner = '<p class="sub">Your last ' + ss.length + ' logged sessions, with WHOOP alongside.</p><div class="gsess">';
   ss.forEach(s => {
-    const work = s.sets.filter(gWork), vol = sum(work.map(x => (isNum(x.w) && isNum(x.reps) ? (x.w + (g.bw && G_BW.test(x.ex) ? g.bw : 0)) * x.reps : 0)));
+    const work = s.sets.filter(gWork), vol = sum(work.map(x => (isNum(x.w) && isNum(x.reps) ? (x.w + (g.bw && G_BW.test(x.ex) ? g.bw : 0)) * x.reps * (G_DB.test(x.ex) ? 2 : 1) : 0)));
     const wl = M.workouts.filter(w => w.di === s.di && w.scored && w.sport === 'weightlifting')[0], rec = recOf(s.di);
     inner += '<div class="gsr"><div class="gsh"><b>' + esc(fmtDayW(s.di)) + '</b><span>' + (s.workout ? 'Workout ' + esc(s.workout) : esc(s.name)) + '</span></div><div class="gss">' + work.length + ' working sets · ' + (s.duration_s ? Math.round(s.duration_s / 60) + ' min · ' : '') + esc(gVol(vol)) + ' moved' +
       (rec != null ? ' · recovery that morning <b style="color:' + bandOf(rec).color + '">' + nf(rec, 0) + '%</b>' : '') + (wl ? ' · WHOOP strain ' + nf(wl.strain, 1) : ' · no WHOOP lift recorded') + '</div></div>';

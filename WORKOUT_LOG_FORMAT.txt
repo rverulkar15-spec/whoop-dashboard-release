@@ -26,8 +26,8 @@ FORMAT (JSON). Copy what MacroFactor shows. The dashboard does the conversions.
   "rir" is the number in the red or yellow badge on the right. Warm-ups have none.
   "reps" is copied as shown, so a set shown as 10+4P is written "10+4P". Each partial rep counts one third of a rep,
   the same way MacroFactor counts it, so the volume matches the app.
-  "per_side": true is for dumbbell sets shown as "(per side)". The weight is copied as shown (17.5) and the dashboard
-  stores the total of both hands (35), the same way the MacroFactor export does.
+  "per_side": true is for dumbbell sets shown as "(per side)". The weight is copied as shown (17.5) and stored per hand,
+  never doubled. Volume still counts both hands, so it matches the app.
   Bodyweight sets use w 0. Optional extras: duration_s, name, program, muscles (sets per muscle, if the screenshot has it).
 
 RULES
@@ -36,4 +36,4 @@ RULES
   the newer file, which is how a correction works. Add "replace": true to replace the whole workout instead.
   A file with a problem is skipped and named in sync.log and DOCTOR.bat. It never breaks a refresh.
   Check: the volume MacroFactor shows for an exercise is the sum of weight x reps over the non warm-up sets,
-  doubled for per side dumbbell sets, with partials counted as a third of a rep.
+  with per side dumbbell sets counted for both hands (weight x reps x 2) and partials counted as a third of a rep.

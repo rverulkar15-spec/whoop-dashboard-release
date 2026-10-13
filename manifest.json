@@ -1,9 +1,9 @@
 {
- "release": 13,
+ "release": 14,
  "files": {
   "README.txt": "ed7a58d3a0a5d3bdf5ad4965f3e9ee64ba333f1d38013bbf29d1747c6ba4cd7f",
-  "WORKOUT_LOG_FORMAT.txt": "108c48c1067f62cd2748d4f217a68a98aab3cf4399bdadb7cb872026ab7e4a09",
-  "gym.py": "55c771e47813be8bb8217ec894f549ad575186d81046c7b712d5d616f0fc7826",
+  "WORKOUT_LOG_FORMAT.txt": "9d19d0bcdc38373afe73b0f28645ad4486049ac65fbb9eb9b67055b520258155",
+  "gym.py": "a33655b632a3d49387f51ed2ed82dfa43cbfcef164aa84113f625637ee224e53",
   "mailer.py": "b052b95da6579bbc8cf7555075f94a989023d43d065e20b9f8a085cf107e968b",
   "update.py": "f66d0ed158decc86225bd4157241eb65d5f7b3b39a49876f7199fe488d6a25e7",
   "whoop.py": "81cf1bbd24171008f97a27a579e8c6d34d76e9c2b7a4984fb7cbd294d682a8d9",
@@ -18,7 +18,7 @@
   "dashboard_src/sections4.js": "20fd51041d2c4e216010a2d20cc9182a389c9e8914263c95a4eca2e68b18c3d7",
   "dashboard_src/style.css": "5f5b53d4056211e08367a4dd57506057e789d1ff4e05c20fb83ee994be0e3e05",
   "dashboard_v3/call.js": "aef52335cff43cc7bd10400b93b5c18f9f806d442bb34ade892910f115b34028",
-  "dashboard_v3/gym.js": "c626b8885929f1c3934e638a35a851e5e31ae4299ad07699856f586102ea8e2d",
+  "dashboard_v3/gym.js": "09adb555ae87e9f031abff160de3ed6f8655f41265daa04de614db6f0259cb86",
   "dashboard_v3/index.html": "8434d477aeb29bb45fd06d448c0536a49e5d7a27637b7ebfbd4fbb55af6de2e3",
   "dashboard_v3/journal.js": "db2af2662e3ddc76aa8c3cd9398c563ea4303da4a33dbafa21c243a5fb51e260",
   "dashboard_v3/plan.js": "36aed5d2037157cc936e33d0fed590bf72382aca19653d4c191372b1d1c22887",

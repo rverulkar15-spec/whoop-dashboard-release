@@ -123,7 +123,7 @@ def parse_log(rows):
         s["sets"].append({
             "ex": ex, "base": _num(g(r, "Exercise Base Weight (lb)")),
             "type": "Drop Set" if t == "Drop" else t,
-            "w": _num(g(r, "Weight (lb)")), "reps": _num(g(r, "Reps")), "rir": _num(g(r, "RIR")),
+            "w": _perhand(ex, _num(g(r, "Weight (lb)"))), "reps": _num(g(r, "Reps")), "rir": _num(g(r, "RIR")),
             "dur": _num(g(r, "Duration")), "yd": _num(g(r, "Distance short (Yd)")), "mi": _num(g(r, "Distance long (Mi)"))})
     return sessions
 
@@ -330,6 +330,11 @@ def merge(arch, new, fname, mtime, size):
     return arch
 
 
+def _perhand(ex, w):
+    """The MacroFactor export lists dumbbell weight as both hands together. The dashboard shows it per hand."""
+    return round(w / 2.0, 4) if (w is not None and "dumbbell" in ex.lower()) else w
+
+
 def find_exports(here):
     home = os.path.expanduser("~")
     found = []
@@ -438,7 +443,7 @@ def _reps(st, ex):
 
 def parse_log_file(path):
     """One workout log file to a list of sessions in the same shape the export reader makes. Raises ValueError with a plain reason.
-    Dumbbell sets marked per_side are stored as the total of both hands, the way the export stores them."""
+    Dumbbell weights are stored per hand, exactly as shown on screen (never doubled)."""
     with open(path, "r", encoding="utf-8-sig") as f:
         raw = json.load(f)
     items = raw.get("sessions") if isinstance(raw, dict) and isinstance(raw.get("sessions"), list) else [raw]
@@ -456,8 +461,6 @@ def parse_log_file(path):
                 raise ValueError("a set has no exercise name")
             t = _set_type(st, ex)
             w = _num(st.get("w"))
-            if w is not None and st.get("per_side"):
-                w = round(w * 2, 4)
             reps, p = _reps(st, ex)
             if w is not None and not (0 <= w <= 1500):
                 raise ValueError("weight %s for %s is not believable" % (w, ex))
