@@ -214,6 +214,9 @@ def search_dirs(here):
     if os.name == "nt":
         for L in "DEFGHIJKLMNOPQRSTUVWXYZ":
             dirs += [L + ":\\My Drive\\WHOOP Dashboard", L + ":\\WHOOP Dashboard"]
+    for d in list(dirs):                 # the drop off folder inside the Drive folder
+        if d.endswith("WHOOP Dashboard"):
+            dirs += glob.glob(os.path.join(d, "2 Drop WHOOP*"))
     return [d for d in dirs if os.path.isdir(d)]
 
 

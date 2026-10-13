@@ -72,6 +72,13 @@ WHOOP EXPORT (journal and older days)
   the export, in the page only, so your archive is never altered. A newer export adds to the old one.
   One journal question (Masturbated?) is skipped on purpose. To skip others, edit SKIP_QUESTIONS in whoop_export.py.
 
+DROP OFF FOLDERS (Google Drive, WHOOP Dashboard folder)
+  1 Drop MacroFactor exports here   any MacroFactor .xlsx or .csv export, any file name
+  2 Drop WHOOP exports here         the WHOOP export csv files (or the my_whoop_data zip)
+  3 Drop Apple Health export here   reserved, not read yet
+  Drop the file in, then the next refresh picks it up. Old files can stay, they are only read once.
+  Needs Google Drive for desktop running on this PC. The older places (Downloads, Desktop) still work too.
+
 SELF UPDATE
   When update_source.txt (one line, the web address of the release) is present, every refresh checks for a newer
   release at most every 3 hours. It replaces only dashboard and program files whose fingerprint differs, checks each

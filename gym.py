@@ -347,6 +347,9 @@ def find_exports(here):
     if os.name == "nt":
         for L in "DEFGHIJKLMNOPQRSTUVWXYZ":
             drive += [L + ":\\My Drive\\WHOOP Dashboard", L + ":\\WHOOP Dashboard"]
+    for d in list(drive):                # the drop off folder inside the Drive folder takes any export name
+        for dd in glob.glob(os.path.join(d, "1 Drop MacroFactor*")):
+            found += glob.glob(os.path.join(dd, "*.xlsx")) + glob.glob(os.path.join(dd, "*.csv"))
     for d in drive:
         if os.path.isdir(d):
             found += glob.glob(os.path.join(d, "MacroFactor*.xlsx")) + glob.glob(os.path.join(d, "MacroFactor*.csv"))
