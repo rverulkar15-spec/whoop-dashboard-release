@@ -446,7 +446,7 @@ def merge_log(arch, sessions, fname, mtime, size):
         if any(x.get("src") != "log" for x in same):
             skipped.append(s["date"])
             continue
-        cur = [x for x in cur if x["date"] != s["date"]]
+        cur = [x for x in cur if not (x["date"] == s["date"] and x.get("workout") == s.get("workout"))]
         mus = s.pop("muscles", None)
         cur.append(s)
         if mus and s["date"] not in (arch.get("muscles") or {}):
