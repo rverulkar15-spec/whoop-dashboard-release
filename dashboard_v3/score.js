@@ -288,7 +288,7 @@ function fsChartBox(F, range) {
   if (mo.length >= 3) {
     const m = mo.map(x => x[1]), a = Math.min(-12, Math.floor(Math.min.apply(null, m) / 5) * 5), z = Math.max(12, Math.ceil(Math.max.apply(null, m) / 5) * 5);
     h += '<h3 class="st-h3">Momentum: the latest 28 days against the 90 before</h3>' +
-      lineChart({ title: 'Momentum in points', w: 720, h: 170, y0: a, y1: z, hlines: [{ y: 4, label: 'Building from +4' }, { y: 0, label: '0' }, { y: -4, label: 'Slipping from -4' }], series: [{ label: 'Momentum', unit: ' pts', cls: 1, pts: mo }] });
+      lineChart({ title: 'Momentum in points', w: 720, h: 170, y0: a, y1: z, hlines: [{ y: 4, label: 'Building at 4 up' }, { y: 0, label: 'level' }, { y: -4, label: 'Slipping at 4 down' }], series: [{ label: 'Momentum', unit: ' pts', cls: 1, pts: mo }] });
   }
   return h;
 }
@@ -303,7 +303,7 @@ function fsSection() {
   h += '<div class="score">' +
     '<div class="cell"><small>Level</small><b>' + nf(F.now.score, 0) + '</b><span>of 100, meeting your goals is about 70</span></div>' +
     '<div class="cell"><small>Momentum</small><b>' + (F.status ? esc(F.status.t) : 'Building a baseline') + '</b><span>' + (F.mo ? (Math.abs(F.mo.m) < 1 ? 'level with' : (F.mo.m > 0 ? 'up ' : 'down ') + nf(Math.abs(F.mo.m), 0) + ' points on') + ' your last ' + fsAgo(F.mo.n) + '' : 'not enough history yet') + '</span></div>' +
-    '<div class="cell"><small>Against 4 weeks ago</small><b>' + (chg == null ? 'n/a' : (chg >= 0 ? '+' : '-') + nf(Math.abs(chg), 0)) + '</b><span>' + (F.back ? 'was ' + nf(F.back.score, 0) + ' on ' + esc(fmtDay(F.back.di)) : 'not enough history yet') + '</span></div>' +
+    '<div class="cell"><small>Against 4 weeks ago</small><b>' + (chg == null ? 'n/a' : Math.abs(chg) < 1 ? 'Level' : (chg > 0 ? 'Up ' : 'Down ') + nf(Math.abs(chg), 0)) + '</b><span>' + (F.back ? 'was ' + nf(F.back.score, 0) + ' on ' + esc(fmtDay(F.back.di)) : 'not enough history yet') + '</span></div>' +
     '<div class="cell"><small>Best in view</small><b>' + nf(best.score, 0) + '</b><span>' + esc(fmtDay(best.di)) + ', lowest ' + nf(low.score, 0) + '</span></div></div>';
   if (hi || ll) h += '<ul class="calllist">' + [hi, ll].filter(Boolean).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>';
   h += '<div class="seg" role="group" aria-label="Chart range">' + [[28, '4 weeks'], [90, '3 months'], [0, 'All data']].map(i => '<button type="button" data-fsr="' + i[0] + '" aria-pressed="' + (range === i[0]) + '">' + i[1] + '</button>').join('') + '</div>';
