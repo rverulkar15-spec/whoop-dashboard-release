@@ -1,0 +1,32 @@
+WORKOUT LOG FILES (workouts that come from MacroFactor screenshots)
+
+WHERE THEY GO
+  Google Drive, WHOOP Dashboard folder, in "4 Drop workout logs here". One file per workout.
+  Name: workout_YYYY-MM-DD.json (add _B for a second workout the same day).
+  The next refresh reads any file it has not seen. Nothing else to do.
+
+FORMAT (JSON, weights in lb as MacroFactor shows them)
+{
+  "format": "mf-screenshot-v1",
+  "date": "2026-10-14",
+  "workout": "D",
+  "name": "Intermediate Upper/Lower Split (Workout D)",
+  "program": "Intermediate Upper/Lower Split",
+  "duration_s": 3300,
+  "sets": [
+    {"ex": "Barbell Back Squat", "type": "Warm-Up Set", "w": 135, "reps": 8},
+    {"ex": "Barbell Back Squat", "type": "Standard Set", "w": 225, "reps": 6, "rir": 2},
+    {"ex": "Barbell Back Squat", "type": "Drop Set", "w": 185, "reps": 8, "rir": 0}
+  ],
+  "muscles": {"Quads": 3},
+  "notes": "optional free text, never read by the dashboard"
+}
+  Required: date, and sets with ex, w, reps. Everything else is optional.
+  Set type is Warm-Up Set, Standard Set or Drop Set. Warm-ups never count toward volume or personal bests.
+  Exercise names are copied exactly as MacroFactor shows them, so they match the older export history.
+  Bodyweight sets use w 0. "muscles" (sets per muscle) is only kept when the screenshot shows it.
+
+RULES
+  A MacroFactor export that covers the same date always wins over a log file.
+  Sending a corrected log for the same date replaces the earlier log.
+  A file with a problem is skipped and named in sync.log and DOCTOR.bat. It never breaks a refresh.

@@ -365,6 +365,99 @@ def find_exports(here):
     return out
 
 
+# ---------------------------------------------------------------- workout logs typed from screenshots
+# Going forward each workout arrives as one small JSON file (made from a MacroFactor screenshot) dropped in
+# the Drive folder "4 Drop workout logs here", or in a gym_logs folder next to this file. The format is
+# documented in WORKOUT_LOG_FORMAT.txt. An export that covers the same date always wins over a log.
+
+LOG_TYPES = {"warmup": "Warm-Up Set", "warm-up": "Warm-Up Set", "warm up": "Warm-Up Set", "warm-up set": "Warm-Up Set",
+             "standard": "Standard Set", "standard set": "Standard Set", "working": "Standard Set", "normal": "Standard Set",
+             "drop": "Drop Set", "drop set": "Drop Set", "failure": "Failure Set", "failure set": "Failure Set"}
+
+
+def find_logs(here):
+    home = os.path.expanduser("~")
+    roots = [os.path.join(here, "gym_logs")]
+    drive = [os.path.join(home, "Google Drive", "WHOOP Dashboard"), os.path.join(home, "Google Drive", "My Drive", "WHOOP Dashboard")]
+    if os.name == "nt":
+        for L in "DEFGHIJKLMNOPQRSTUVWXYZ":
+            drive += [L + ":\\My Drive\\WHOOP Dashboard", L + ":\\WHOOP Dashboard"]
+    for d in drive:
+        roots += glob.glob(os.path.join(d, "4 Drop workout*"))
+    found = []
+    for r in roots:
+        found += glob.glob(os.path.join(r, "*.json"))
+    seen, out = set(), []
+    for p in sorted(found, key=lambda p: (os.path.getmtime(p), p)):
+        k = (os.path.basename(p), os.path.getsize(p))
+        if k not in seen:
+            seen.add(k)
+            out.append(p)
+    return out
+
+
+def parse_log_file(path):
+    """One workout log file to a list of sessions in the same shape the export reader makes. Raises ValueError with a plain reason."""
+    with open(path, "r", encoding="utf-8-sig") as f:
+        raw = json.load(f)
+    items = raw.get("sessions") if isinstance(raw, dict) and isinstance(raw.get("sessions"), list) else [raw]
+    out = []
+    for it in items:
+        if not isinstance(it, dict):
+            raise ValueError("not a workout log")
+        d = _date(it.get("date"))
+        if not d:
+            raise ValueError("missing or bad date (need YYYY-MM-DD)")
+        sets = []
+        for st in it.get("sets") or []:
+            ex = (st.get("ex") or "").strip() if isinstance(st, dict) else ""
+            if not ex:
+                raise ValueError("a set has no exercise name")
+            t = str(st.get("type") or "Standard Set").strip()
+            t = LOG_TYPES.get(t.lower(), t)
+            w, reps = _num(st.get("w")), _num(st.get("reps"))
+            if w is not None and not (0 <= w <= 1500):
+                raise ValueError("weight %s for %s is not believable" % (w, ex))
+            if reps is not None and not (0 <= reps <= 500):
+                raise ValueError("reps %s for %s is not believable" % (reps, ex))
+            sets.append({"ex": ex, "base": _num(st.get("base")), "type": t, "w": w, "reps": reps, "rir": _num(st.get("rir")),
+                         "dur": _num(st.get("dur")), "yd": _num(st.get("yd")), "mi": _num(st.get("mi"))})
+        if not sets:
+            raise ValueError("no sets in the log for " + d)
+        name = it.get("name") or ""
+        letter = it.get("workout")
+        m = re.match(r"(.*?)(?:\s*\(Workout\s*([A-Za-z0-9]+)\))?\s*$", name)
+        program = it.get("program") or (m.group(1).strip() if m else name)
+        if not letter and m and m.group(2):
+            letter = m.group(2)
+        mus = it.get("muscles") if isinstance(it.get("muscles"), dict) else None
+        out.append({"date": d, "workout": letter, "name": name, "program": program, "duration_s": _num(it.get("duration_s")),
+                    "sets": sets, "src": "log", "muscles": mus})
+    return out
+
+
+def merge_log(arch, sessions, fname, mtime, size):
+    """Fold log sessions into the archive. Returns (added, skipped_dates). A date already held from an export is kept as is."""
+    cur = arch.get("sessions", [])
+    added, skipped = 0, []
+    for s in sessions:
+        same = [x for x in cur if x["date"] == s["date"]]
+        if any(x.get("src") != "log" for x in same):
+            skipped.append(s["date"])
+            continue
+        cur = [x for x in cur if x["date"] != s["date"]]
+        mus = s.pop("muscles", None)
+        cur.append(s)
+        if mus and s["date"] not in (arch.get("muscles") or {}):
+            arch.setdefault("muscles", {})[s["date"]] = {k: v for k, v in mus.items() if isinstance(v, (int, float))}
+        added += 1
+    arch["sessions"] = sorted(cur, key=lambda s: (s["date"], s.get("workout") or ""))
+    src = arch.setdefault("source", {"files": []})
+    src["files"] = [f for f in src.get("files", []) if f.get("name") != fname] + [{"name": fname, "mtime": int(mtime), "size": size, "log": True}]
+    src["updated_at"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return added, skipped
+
+
 def refresh(here, archive_path, log):
     """Ingest any export not yet seen. Returns the archive dict, or None when there is no gym data at all.
     Never raises: a bad export is logged and skipped."""
@@ -389,6 +482,18 @@ def refresh(here, archive_path, log):
                 log("Gym export read: %s (%d sessions in file, %d new days)" % (os.path.basename(p), len(new["sessions"]), n_new))
             except Exception as e:      # a bad file must never stop the sync
                 log("Gym export skipped (%s): %s" % (os.path.basename(p), e))
+        for p in find_logs(here):
+            key = (os.path.basename(p), os.path.getsize(p))
+            if key in known:
+                continue
+            try:
+                sess = parse_log_file(p)
+                added, skipped = merge_log(arch, sess, os.path.basename(p), os.path.getmtime(p), os.path.getsize(p))
+                changed = True
+                log("Workout log read: %s (%d session%s added%s)" % (os.path.basename(p), added, "" if added == 1 else "s",
+                    ", kept the export's version for " + ", ".join(skipped) if skipped else ""))
+            except Exception as e:      # a bad log must never stop the sync
+                log("Workout log skipped (%s): %s" % (os.path.basename(p), e))
         if changed:
             tmp = archive_path + ".tmp"
             with open(tmp, "w", encoding="utf-8", newline="\n") as f:

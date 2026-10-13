@@ -13,6 +13,7 @@ WHAT IS IN THIS FOLDER
   whoop_export.py       reads the WHOOP data export (journal, cycles, sleeps, workouts) and layers it in
   gym.py                reads your MacroFactor exports (workouts, history, weight, steps) and builds the story lines
   whoop_export_data.json  created by the first run that finds a WHOOP export. Grows with every export
+  WORKOUT_LOG_FORMAT.txt  how a workout log file made from a screenshot looks
   gym_data.json         your gym history, built from the exports. Grows with every export
   dashboard_src         the shared parts the dashboard is built from. Keep this folder next to whoop.py
   dashboard_v3          the new look (The Season). Keep this folder next to whoop.py too
@@ -75,10 +76,16 @@ WHOOP EXPORT (journal and older days)
   the export, in the page only, so your archive is never altered. A newer export adds to the old one.
   One journal question (Masturbated?) is skipped on purpose. To skip others, edit SKIP_QUESTIONS in whoop_export.py.
 
+WORKOUT SCREENSHOTS (going forward)
+  After the history export, new workouts come from MacroFactor screenshots. A separate chat reads each screenshot and
+  saves a small log file in "4 Drop workout logs here". The next refresh reads it. The file format is in WORKOUT_LOG_FORMAT.txt.
+  An export that covers the same date wins over a log. Logs with no muscle breakdown leave the sets per muscle table blank for that day.
+
 DROP OFF FOLDERS (Google Drive, WHOOP Dashboard folder)
   1 Drop MacroFactor exports here   any MacroFactor .xlsx or .csv export, any file name
   2 Drop WHOOP exports here         the WHOOP export csv files (or the my_whoop_data zip)
   3 Drop Apple Health export here   reserved, not read yet
+  4 Drop workout logs here          workout log files made from MacroFactor screenshots (see WORKOUT_LOG_FORMAT.txt)
   Drop the file in, then the next refresh picks it up. Old files can stay, they are only read once.
   Needs Google Drive for desktop running on this PC. The older places (Downloads, Desktop) still work too.
 

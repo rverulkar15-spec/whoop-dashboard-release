@@ -779,7 +779,8 @@ def doctor():
         if g and g.get("sessions"):
             last = max(x["date"] for x in g["sessions"])
             age = (datetime.now().date() - datetime.strptime(last, "%Y-%m-%d").date()).days
-            add("OK" if age <= 10 else "WARN", "Gym log has %d sessions, latest %s%s" % (len(g["sessions"]), last, "" if age <= 10 else ". Export from MacroFactor again and save it in Downloads"))
+            nlog = sum(1 for x in g["sessions"] if x.get("src") == "log")
+            add("OK" if age <= 10 else "WARN", "Gym log has %d sessions (%d from screenshots), latest %s%s" % (len(g["sessions"]), nlog, last, "" if age <= 10 else ". Send a workout screenshot to the workout chat, or export from MacroFactor again"))
         else:
             add("WARN", "No gym log yet. Save a MacroFactor workout export into Downloads and refresh")
     if whoop_export is not None:
