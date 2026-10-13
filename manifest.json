@@ -1,0 +1,27 @@
+{
+ "release": 2,
+ "files": {
+  "README.txt": "a53c0267b12667725b81399dc4711ba171a02db2641fa62bde289084eeea53f9",
+  "gym.py": "3234febd6a651795600a612584738b4f29b9ce718a74811b26240b394b872595",
+  "mailer.py": "19906a38c46bbf362c3c957f12c725b58f06ef6cce53126c4c2ea4034b1e2e1c",
+  "update.py": "f66d0ed158decc86225bd4157241eb65d5f7b3b39a49876f7199fe488d6a25e7",
+  "whoop.py": "643eaee3dab7431192f7644e8d785616e996426838b46b876581aa30608cbb57",
+  "whoop_export.py": "fca958e389707a78f923f00a4318a8b8421235cb004d88607060a6ba05c146f9",
+  "dashboard_src/charts.js": "a36c2a797def662d03baa2d42f61e47fda5258e97e9a22e16255b4904f5e8832",
+  "dashboard_src/core.js": "9083b8accde441af2b96d4f586802186aff00d9cf0bd492813267aebe3bd682f",
+  "dashboard_src/index.html": "8101a5a920efde4c76c8fcf51e9711cbeb9a53da839b6f2b3a4dc0405bf0bd18",
+  "dashboard_src/orb.js": "9327d384d7a2260e23b1aebc719319536591adf603cef896cc23a1864e94efe2",
+  "dashboard_src/sections1.js": "d80ac9fa3c55c0846f1d296075a71d9a2a53aa294f9ea462f3c51cefbde342f3",
+  "dashboard_src/sections2.js": "46605935c9b159a72fd244c1f9edff7470800d6454f851e774ad223f1a8873d0",
+  "dashboard_src/sections3.js": "74e22527759dcf9459b7c206bcccd4733702d0b620c7985ac5827b052e78cd4f",
+  "dashboard_src/sections4.js": "20fd51041d2c4e216010a2d20cc9182a389c9e8914263c95a4eca2e68b18c3d7",
+  "dashboard_src/style.css": "5f5b53d4056211e08367a4dd57506057e789d1ff4e05c20fb83ee994be0e3e05",
+  "dashboard_v3/call.js": "aef52335cff43cc7bd10400b93b5c18f9f806d442bb34ade892910f115b34028",
+  "dashboard_v3/gym.js": "e8e3bfd4e8fa8e3ed34aaa3a402414f5401702bf2baacbcbac983cae2bfa48e7",
+  "dashboard_v3/index.html": "d4c766e8a4b22701c0bc405fed4d56b010d17f428fcbaf858fa71cd86d250672",
+  "dashboard_v3/journal.js": "db2af2662e3ddc76aa8c3cd9398c563ea4303da4a33dbafa21c243a5fb51e260",
+  "dashboard_v3/season.js": "f330265d0371b8cedd72d2b88fe783f1eed66c1233113c328d73a20ba46f52c1",
+  "dashboard_v3/story.js": "29542bce45fbef8ec16e0addb300a92c4bbee84403e2474d1a0fa49524f2a61c",
+  "dashboard_v3/theme.css": "08c25859f786c49fdb6741c4a96bf6977003f3b8464980a293110821209336b3"
+ }
+}

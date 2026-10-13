@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0a0b0d">
+<title>WHOOP Dashboard</title>
+<style>
+/*CSS*/
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">Peak condition<small id="asof">Loading</small></div>
+    <nav class="jump" aria-label="Sections">
+      <a href="#sec-read">Read</a><a href="#sec-progress">Progress</a><a href="#sec-today">Today</a><a href="#sec-trends">Trends</a><a href="#sec-sleep">Sleep</a>
+      <a href="#sec-train">Training</a><a href="#sec-goals">Goals</a><a href="#sec-drivers">Drivers</a>
+      <a href="#sec-controls">Controls</a><a href="#sec-health">Data health</a>
+    </nav>
+    <label class="btn" for="fileIn" style="margin:0;color:var(--text)">Load data file</label>
+    <input id="fileIn" type="file" accept=".json,application/json" class="sr" multiple>
+  </div>
+</header>
+<div id="drop" class="drop" aria-hidden="true">Drop whoop_data.json or user_entries.json</div>
+
+<main id="main">
+  <div id="banners"></div>
+
+  <!-- THE READ replaces a daily decision: direction of travel, no instructions. -->
+  <section id="sec-read" class="card cluster" aria-labelledby="h-read">
+    <h2 id="h-read">The read <span class="tag d">MODELED</span></h2>
+    <p id="readLine" class="read-line"></p>
+    <div class="dials">
+      <div id="dialL" class="dial small"></div>
+      <!-- ORB SLOT: the orb script goes inside #orbSlot. It can read window.ORB_VALUE (recovery_score) and window.ORB_COLOR. -->
+      <div id="orbSlot" class="dial big" data-orb="reserved"></div>
+      <div id="dialR" class="dial small"></div>
+    </div>
+    <div id="readTable" class="scroll"></div>
+  </section>
+
+  <section id="sec-progress" class="card" aria-labelledby="h-progress"><h2 id="h-progress">Progress: how you have grown</h2><div id="progBody"></div></section>
+
+  <section id="sec-today" class="card" aria-labelledby="h-today"><h2 id="h-today">Today against your own baseline</h2><div id="todayBody"></div></section>
+  <section id="sec-trends" class="card" aria-labelledby="h-trends"><h2 id="h-trends">Trends</h2><div id="trendsBody"></div></section>
+  <section id="sec-sleep" class="card" aria-labelledby="h-sleep"><h2 id="h-sleep">Sleep</h2><div id="sleepBody"></div></section>
+  <section id="sec-train" class="card" aria-labelledby="h-train"><h2 id="h-train">Training</h2><div id="trainBody"></div></section>
+  <section id="sec-goals" class="card" aria-labelledby="h-goals"><h2 id="h-goals">Goal tracker and your own numbers <span class="tag u">USER ENTERED</span></h2><div id="goalsBody"></div></section>
+  <section id="sec-drivers" class="card" aria-labelledby="h-drivers"><h2 id="h-drivers">My drivers <span class="tag d">MODELED</span></h2><div id="driversBody"></div></section>
+  <section id="sec-controls" class="card" aria-labelledby="h-controls"><h2 id="h-controls">Controls</h2><div id="controlsBody"></div></section>
+  <section id="sec-health" class="card" aria-labelledby="h-health"><h2 id="h-health">Data health</h2><div id="healthBody"></div></section>
+  <section id="sec-mm" class="card" aria-labelledby="h-mm"><h2 id="h-mm">Measured versus modeled</h2><div id="mmBody"></div></section>
+  <div class="foot" id="foot"></div>
+</main>
+
+<!--WHOOP_DATA_START--><script id="whoop-data" type="application/json">{}</script><!--WHOOP_DATA_END-->
+<!--USER_DATA_START--><script id="user-embed" type="application/json">{"entries":[]}</script><!--USER_DATA_END-->
+<script>
+/*JS*/
+</script>
+</body>
+</html>
