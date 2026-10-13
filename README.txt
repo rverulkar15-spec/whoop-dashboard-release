@@ -48,7 +48,7 @@ WHAT YOU GET
   for every lift, what the longest break cost, what your body did in lifting weeks, rough patches in recovery, body
   weight and steps, a month by month table and the next marks to beat. A short version sits at the top of Today.
   The Season: bottom tabs (Today, Story, Training, Sleep, Progress, Goals, More; the old Drivers tab is now at the bottom of Progress), dark and light themes,
-  a level and badges, a 90 day map, growth against last month and weekly targets. Theme and text size are in More.
+  a fitness score (0 to 100, built from lifting consistency, strength gains, cardio, recovery trend and sleep, with days off costing points) and badges, a 90 day map, growth against last month and weekly targets. Theme and text size are in More.
   Dashboard: the Progress section compares week over week, month over month and beginning to now.
   It shows where you grew and where to look, plus charts and personal records.
   Morning email: your recovery, last night, last 28 days against the 28 before, and an early warning

@@ -449,6 +449,16 @@ def sync(archive, force_full=False):
     out = dict(archive)
     out["profile"] = fresh["profile"]
     out["body"] = fresh["body"]
+    # WHOOP shares only the current weight, so keep a dated log of it: a new entry whenever the value changes
+    try:
+        w = (fresh["body"] or {}).get("weight_kilogram")
+        wl = dict(archive.get("weight_log") or {})
+        if isinstance(w, (int, float)) and w > 20 and (not wl or wl[sorted(wl)[-1]] != round(w, 2)):
+            wl[datetime.now().strftime("%Y-%m-%d")] = round(w, 2)
+        if wl:
+            out["weight_log"] = wl
+    except Exception as e:
+        log("Weight log skipped: %s" % e)
     added, updated = {}, {}
     for kind in ENDPOINTS:
         if not fresh[kind] and archive.get(kind):
@@ -521,7 +531,7 @@ SRC_DIR = P("dashboard_src")
 V3_DIR = P("dashboard_v3")
 SRC_JS = ["core.js", "charts.js", "sections1.js", "sections2.js", "sections3.js", "sections4.js", "orb.js"]
 V3_JS = ["core.js", "charts.js", "sections1.js", "sections2.js", "sections3.js", "sections4.js"]
-V3_OWN = ("gym.js", "story.js", "journal.js", "call.js", "season.js")
+V3_OWN = ("gym.js", "story.js", "journal.js", "score.js", "call.js", "season.js")
 
 
 def _read(folder, n):

@@ -265,7 +265,7 @@ function stPatches() {
     const bs = []; for (let k = 8; k <= 63; k++) { const v = rec.get(di - k); if (v != null) bs.push(v); }
     if (bs.length < 20) continue;
     const base = median(bs), m7 = mean(w);
-    if (!cur && m7 <= base - 8) cur = { start: di, base, min: m7, end: null };
+    if (!cur && m7 <= base - 6) cur = { start: di, base, min: m7, end: null };
     else if (cur) { cur.min = Math.min(cur.min, m7); if (m7 >= cur.base - 3) { cur.end = di; out.push(cur); cur = null; } }
   }
   if (cur) out.push(cur);
@@ -274,7 +274,7 @@ function stPatches() {
 function stPatchCard() {
   const P = stPatches(); if (!P.length && M.days.length < 90) return '';
   let h = '<section class="card"><div class="sec-h"><h2>Rough patches and the way back</h2>' + tag('MODELED') + '</div>';
-  if (!P.length) h += '<p class="sub">No stretch where your 7 day recovery sat 8 or more points under your own normal. That is rare, and a good sign.</p>';
+  if (!P.length) h += '<p class="sub">No stretch where your 7 day recovery sat 6 or more points under your own normal. That is rare, and a good sign.</p>';
   else {
     const closed = P.filter(p => !p.open), md = closed.length ? median(closed.map(p => p.days)) : null;
     h += '<p class="sub">' + stPl(P.length, 'stretch', 'stretches') + ' when your recovery sat well under your own normal' + (md != null ? '. Back to normal took a median of ' + stD(Math.round(md)) + '.' : '.') + (P.some(p => p.open) ? ' One is still going.' : '') + '</p><div class="st-list">';
@@ -283,52 +283,69 @@ function stPatchCard() {
     });
     h += '</div>';
   }
-  h += formula('for each day, the 7 day average of recovery is compared with the median of your recovery from 8 to 63 days earlier. A patch starts when the average is 8 or more points under that median and ends when it is back within 3 points. Patches shorter than 3 days are dropped. Needs 30 days of history and 20 scored days in the baseline.') + '</section>';
+  h += formula('for each day, the 7 day average of recovery is compared with the median of your recovery from 8 to 63 days earlier. A patch starts when the average is 6 or more points under that median and ends when it is back within 3 points. Patches shorter than 3 days are dropped. Needs 30 days of history and 20 scored days in the baseline.') + '</section>';
   return h;
 }
 
 /* ---------- body weight, steps and the month by month ledger ---------- */
 function stSeriesKeys(o) { return Object.keys(o || {}).sort(); }
+function stWeightLog() {            // WHOOP only shares your current weight, so the app keeps a dated log of it at every sync
+  let L = null; try { L = state.data && state.data.weight_log; } catch (e) { L = null; }
+  const ks = stSeriesKeys(L).filter(k => isNum(L[k]) && L[k] > 20);
+  return { L, ks };
+}
+function stWeightAt(wl, di) {       // last logged WHOOP weight on or before a day, in pounds
+  let v = null; wl.ks.forEach(k => { if (gDi(k) <= di) v = wl.L[k] * 2.2046226; });
+  return v;
+}
+function stStepsSeries() {          // WHOOP first, MacroFactor fills days WHOOP does not have
+  const out = {}, b = stBody() || {};
+  Object.keys(b.steps || {}).forEach(k => { out[k] = b.steps[k]; });
+  M.days.forEach(d => { if (isNum(d.steps) && d.steps > 0) out[new Date(d.di * DAY).toISOString().slice(0, 10)] = d.steps; });
+  return out;
+}
 function stBodyChapter(S) {
-  const b = stBody(); if (!b || !b.trend) return '';
-  const ks = stSeriesKeys(b.trend); if (ks.length < 14) return '';
-  const v0 = b.trend[ks[0]], v1 = b.trend[ks[ks.length - 1]], d0 = gDi(ks[0]), d1 = gDi(ks[ks.length - 1]);
-  const pts = []; for (let i = 0; i < ks.length; i += 7) pts.push(b.trend[ks[i]]); pts.push(v1);
-  const rows = stLifts() || [], gained = rows.filter(r => r.pct >= 3).length;
-  let h = '<section class="card"><div class="sec-h"><h2>Body weight and steps</h2>' + tag('USER ENTERED') + '</div>';
+  const wl = stWeightLog();
   let wk = null; try { const w = state.data && state.data.body && state.data.body.weight_kilogram; if (isNum(w) && w > 20) wk = w * 2.2046226; } catch (e) { wk = null; }
-  const nowW = wk != null ? wk : v1, shift = nowW - v0;
-  h += '<div class="st-pairs"><div class="cell"><small>' + (wk != null ? 'Weight now (WHOOP)' : 'Trend weight') + '</small><b>' + esc(gW(nowW)) + '</b><span>' + (shift >= 0 ? 'up ' : 'down ') + esc(gW(Math.abs(shift))) + ' since ' + esc(fmtDay(d0)) + '</span></div>' +
-    '<div class="cell"><small>Path</small>' + sparkline(pts, 150, 34) + '<span>' + esc(fmtDay(d0)) + ' to ' + esc(fmtDay(d1)) + '</span></div></div>';
-  if (rows.length) h += '<p class="sub">Over the same stretch, ' + gained + ' of your ' + rows.length + ' tracked lifts rose by 3 percent or more. Trend weight cannot tell muscle from fat, so use a tape measure or a photo from the same spot and light to see what the weight is made of.</p>';
-  const st = b.steps ? stSeriesKeys(b.steps) : [];
+  const steps = stStepsSeries(), st = stSeriesKeys(steps);
+  if (wk == null && wl.ks.length === 0 && st.length < 30) return '';
+  const rows = stLifts() || [], gained = rows.filter(r => r.pct >= 3).length;
+  let h = '<section class="card"><div class="sec-h"><h2>Body weight and steps</h2>' + tag('MEASURED') + '</div>';
+  if (wk != null) {
+    const d0 = wl.ks.length ? gDi(wl.ks[0]) : null, v0 = wl.ks.length ? wl.L[wl.ks[0]] * 2.2046226 : null, shift = v0 != null ? wk - v0 : null;
+    const pts = wl.ks.map(k => wl.L[k] * 2.2046226);
+    h += '<div class="st-pairs"><div class="cell"><small>Weight now (WHOOP)</small><b>' + esc(gW(wk)) + '</b><span>' + (shift != null && wl.ks.length > 1 ? (Math.abs(shift) < 0.05 ? 'unchanged' : (shift >= 0 ? 'up ' : 'down ') + esc(gW(Math.abs(shift)))) + ' since ' + esc(fmtDay(d0)) : 'logged from ' + esc(fmtDay(d0 != null ? d0 : S.today)) + ' on') + '</span></div>' +
+      (pts.length >= 3 ? '<div class="cell"><small>Path</small>' + sparkline(pts, 150, 34) + '<span>' + esc(fmtDay(d0)) + ' to ' + esc(fmtDay(gDi(wl.ks[wl.ks.length - 1]))) + '</span></div>' : '') + '</div>';
+    if (pts.length < 3) h += '<p class="sub">WHOOP only shares your current weight, not the history. This page now saves it at every refresh, so a path appears once you have updated your weight in WHOOP a few times.</p>';
+  }
+  if (rows.length) h += '<p class="sub">Over the same stretch, ' + gained + ' of your ' + rows.length + ' tracked lifts rose by 3 percent or more. Body weight cannot tell muscle from fat, so use a tape measure or a photo from the same spot and light to see what the weight is made of.</p>';
   if (st.length >= 30) {
-    const a1 = st.slice(0, 30).map(k => b.steps[k]), a2 = st.slice(-30).map(k => b.steps[k]), x = mean(a1), y = mean(a2);
+    const a1 = st.slice(0, 30).map(k => steps[k]), a2 = st.slice(-30).map(k => steps[k]), x = mean(a1), y = mean(a2);
     h += '<p class="sub">Steps per day: ' + Math.round(x).toLocaleString('en-US') + ' in your first logged 30 days, ' + Math.round(y).toLocaleString('en-US') + ' in the latest 30 (' + (y >= x ? 'up ' : 'down ') + nf(Math.abs(y / x - 1) * 100, 0) + '%).</p>';
   }
-  h += formula('the current weight is the one in your WHOOP profile, which WHOOP updates only when you change it there. The path is MacroFactor\'s smoothed trend weight, because WHOOP does not share weight history. Steps come from the MacroFactor export, in logged days only.') + '</section>';
+  h += formula('weight is the one in your WHOOP profile. WHOOP does not share weight history, so each refresh saves the current value with its date and the path is built from those saved values. Steps come from WHOOP first; days WHOOP does not have are filled from the MacroFactor export.') + '</section>';
   return h;
 }
 function stMonthsCard(S) {
-  const b = stBody() || {}, steps = b.steps || {}, trend = b.trend || {};
-  const cand = [S.days[0].di, M.days[0].di].concat(stSeriesKeys(steps).slice(0, 1).map(gDi)), cur = stMonthKey(M.anchor);
+  const stepsAll = stStepsSeries(), wlog = stWeightLog();
+  const cand = [S.days[0].di, M.days[0].di].concat(stSeriesKeys(stepsAll).slice(0, 1).map(gDi)), cur = stMonthKey(M.anchor);
   const from = Math.max(stMonthKey(Math.min.apply(null, cand)), cur - 9);
   const rowsM = [];
   for (let k = from; k <= cur; k++) {
     const inM = di => stMonthKey(di) === k;
     const lifts = S.days.filter(d => inM(d.di)).length;
-    const sk = stSeriesKeys(steps).filter(d => inM(gDi(d))), sv = sk.length >= 7 ? mean(sk.map(d => steps[d])) : (() => { const w = M.days.filter(d => inM(d.di) && isNum(d.steps)); return w.length >= 7 ? mean(w.map(d => d.steps)) : null; })();
-    const tk = stSeriesKeys(trend).filter(d => inM(gDi(d))), tw = tk.length ? trend[tk[tk.length - 1]] : null;
+    const sk = stSeriesKeys(stepsAll).filter(d => inM(gDi(d))), sv = sk.length >= 7 ? mean(sk.map(d => stepsAll[d])) : null;
+    const mEnd = Math.min(M.anchor, Date.UTC(Math.floor(k / 12), (k % 12) + 1, 1) / DAY - 1), tw = wlog.ks.length ? stWeightAt(wlog, mEnd) : null;
     const rd = M.days.filter(d => inM(d.di) && stRecovered(d)), rec = rd.length >= 7 ? mean(rd.map(d => d.recovery)) : null, hv = rd.filter(d => isNum(d.hrv)), hrv = hv.length >= 7 ? mean(hv.map(d => d.hrv)) : null;
     rowsM.push({ k, lifts, sv, tw, rec, hrv });
   }
   if (rowsM.length < 2) return '';
   const nd = '<span class="muted">no data</span>';
-  let h = '<section class="card"><div class="sec-h"><h2>Month by month</h2>' + tag('MEASURED') + '</div><p class="sub">Everything on one line per month, so a good month or a quiet one is easy to spot.</p><div class="scroll"><table><thead><tr><th>Month</th><th class="n">Lift days</th><th class="n">Steps a day</th><th class="n">Trend weight</th><th class="n">Recovery</th><th class="n">HRV</th></tr></thead><tbody>';
+  let h = '<section class="card"><div class="sec-h"><h2>Month by month</h2>' + tag('MEASURED') + '</div><p class="sub">Everything on one line per month, so a good month or a quiet one is easy to spot.</p><div class="scroll"><table><thead><tr><th>Month</th><th class="n">Lift days</th><th class="n">Steps a day</th><th class="n">Weight</th><th class="n">Recovery</th><th class="n">HRV</th></tr></thead><tbody>';
   rowsM.forEach(r => {
     h += '<tr><td>' + stMonthName(r.k) + (r.k % 12 === 0 || r === rowsM[0] ? ' ' + Math.floor(r.k / 12) : '') + '</td><td class="n">' + (r.lifts ? '<b>' + r.lifts + '</b>' : '<span class="muted">0</span>') + '</td><td class="n">' + (r.sv != null ? Math.round(r.sv).toLocaleString('en-US') : nd) + '</td><td class="n">' + (r.tw != null ? esc(gW(r.tw)) : nd) + '</td><td class="n">' + (r.rec != null ? nf(r.rec, 0) + '%' : nd) + '</td><td class="n">' + (r.hrv != null ? nf(r.hrv, 0) + ' ms' : nd) + '</td></tr>';
   });
-  h += '</tbody></table></div>' + formula('lift days count each calendar day with a logged lift (gym log or WHOOP). Steps, recovery and HRV are monthly averages and need at least 7 days of data. Trend weight is the last value in the month. Steps prefer the MacroFactor export and fall back to WHOOP.') + '</section>';
+  h += '</tbody></table></div>' + formula('lift days count each calendar day with a logged lift (gym log or WHOOP). Steps, recovery and HRV are monthly averages and need at least 7 days of data. Weight is the last WHOOP weight saved by the end of the month. Steps come from WHOOP first and fall back to the MacroFactor export.') + '</section>';
   return h;
 }
 

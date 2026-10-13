@@ -124,24 +124,33 @@ def early_warning(archive, latest, sl, now):
             and cut - timedelta(days=28) <= ts(r["created_at"]) < cut]
     sc = latest["score"]
     sig = []
+    strong = []
     z = _z(sc["hrv_rmssd_milli"], [r["score"]["hrv_rmssd_milli"] for r in base if r["score"].get("hrv_rmssd_milli") is not None])
     if z is not None and z <= -1:
         sig.append("HRV is below your usual")
+        if z <= -2:
+            strong.append(1)
     z = _z(sc["resting_heart_rate"], [r["score"]["resting_heart_rate"] for r in base if r["score"].get("resting_heart_rate") is not None])
     if z is not None and z >= 1:
         sig.append("resting heart rate is above your usual")
+        if z >= 2:
+            strong.append(1)
     if sc.get("skin_temp_celsius") is not None:
         z = _z(sc["skin_temp_celsius"], [r["score"]["skin_temp_celsius"] for r in base if r["score"].get("skin_temp_celsius") is not None])
         if z is not None and z >= 1.5:
             sig.append("skin temperature is up")
+            if z >= 2:
+                strong.append(1)
     if sl and sl.get("score") and sl["score"].get("respiratory_rate") is not None:
         ids = {r["sleep_id"] for r in base}
         rr = [s["score"]["respiratory_rate"] for s in archive["sleep"] if s["id"] in ids and s.get("score") and s["score"].get("respiratory_rate") is not None]
         z = _z(sl["score"]["respiratory_rate"], rr)
         if z is not None and z >= 1.5:
             sig.append("breathing rate is up")
-    if len(sig) >= 2:
-        return ("Early warning: " + ", ".join(sig) + " this morning. That mix can mean a cold coming on, a hard "
+            if z >= 2:
+                strong.append(1)
+    if len(sig) >= 2 or strong:
+        return ("Early warning: " + ", ".join(sig) + " this morning. That can mean a cold coming on, a hard "
                 "training block, alcohol or short sleep. It is a flag from your own baseline, not a diagnosis.")
     return None
 

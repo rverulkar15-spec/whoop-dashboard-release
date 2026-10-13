@@ -1,11 +1,11 @@
 {
- "release": 5,
+ "release": 6,
  "files": {
-  "README.txt": "b0b829a48a458c57f0b3d6c7870baf13863c76e07f0865e668e8af9350a85e20",
-  "gym.py": "2fc2f62d3714266dd70ae826d7e18620ec94a55f0fbb02eb4fb32d95339692a5",
-  "mailer.py": "19906a38c46bbf362c3c957f12c725b58f06ef6cce53126c4c2ea4034b1e2e1c",
+  "README.txt": "7711f1cc9804034e23815f94af745f0efa62f9cf61badc4945ffdd8d6b0d06de",
+  "gym.py": "52302b38c1225c1c1ada3d5707623ec5b025568b390501fafa88a5f14da972c3",
+  "mailer.py": "d78ebbf3d97da1181d26feb46c6e750be3808dccfdc731f34e610d6ae5a0ddca",
   "update.py": "f66d0ed158decc86225bd4157241eb65d5f7b3b39a49876f7199fe488d6a25e7",
-  "whoop.py": "643eaee3dab7431192f7644e8d785616e996426838b46b876581aa30608cbb57",
+  "whoop.py": "176818346e0f839071802f485ff3b5bd991cf5144316ea61f2bfcf188fc71c4d",
   "whoop_export.py": "2d73dd695b9821059363b477544a644cf10b62ff1cc5f8cad8915ae8db81220b",
   "dashboard_src/charts.js": "a36c2a797def662d03baa2d42f61e47fda5258e97e9a22e16255b4904f5e8832",
   "dashboard_src/core.js": "9083b8accde441af2b96d4f586802186aff00d9cf0bd492813267aebe3bd682f",
@@ -17,11 +17,12 @@
   "dashboard_src/sections4.js": "20fd51041d2c4e216010a2d20cc9182a389c9e8914263c95a4eca2e68b18c3d7",
   "dashboard_src/style.css": "5f5b53d4056211e08367a4dd57506057e789d1ff4e05c20fb83ee994be0e3e05",
   "dashboard_v3/call.js": "aef52335cff43cc7bd10400b93b5c18f9f806d442bb34ade892910f115b34028",
-  "dashboard_v3/gym.js": "3b82209cc7c58e19ac1bd62efca1492ca5f9913633c81927acc67f2f8a4151be",
-  "dashboard_v3/index.html": "d4c766e8a4b22701c0bc405fed4d56b010d17f428fcbaf858fa71cd86d250672",
+  "dashboard_v3/gym.js": "c626b8885929f1c3934e638a35a851e5e31ae4299ad07699856f586102ea8e2d",
+  "dashboard_v3/index.html": "8434d477aeb29bb45fd06d448c0536a49e5d7a27637b7ebfbd4fbb55af6de2e3",
   "dashboard_v3/journal.js": "db2af2662e3ddc76aa8c3cd9398c563ea4303da4a33dbafa21c243a5fb51e260",
-  "dashboard_v3/season.js": "5427199d036a0d05cafb6f5ed08fd30878cb404be57c332e0cceaa0d273e7941",
-  "dashboard_v3/story.js": "97cbaea2b45743d86bddf0cf8a024e250aad1cd5300c0b83a7978365b5f1cf41",
+  "dashboard_v3/score.js": "cd8653355df307d11a78a6ce44cf9459be6b07462ac735eb559c2d8b5dfe8d4a",
+  "dashboard_v3/season.js": "61b30564aca6fc9b94696b9573767af78939ad902f12a75a7182fd2198c52eb4",
+  "dashboard_v3/story.js": "29be7690d125c752cc07fde0f5140ac72858e451a7f1aa5e2c643698376c6ef7",
   "dashboard_v3/theme.css": "08c25859f786c49fdb6741c4a96bf6977003f3b8464980a293110821209336b3"
  }
 }

@@ -96,9 +96,8 @@ function seasonBadges(X) {
   const tr = M.workouts.filter(sIsTrain).sort((p, q) => p.start - q.start);
   B('w50', '50', 'Fifty Sessions', '50 workouts, not counting walks, sauna or stretching', tr.length >= 50, tr[49] && tr[49].di, tr.length + ' of 50 so far');
   B('w100', '100', 'Century', '100 workouts, not counting walks, sauna or stretching', tr.length >= 100, tr[99] && tr[99].di, tr.length + ' of 100 so far');
-  B('l5', 'L5', 'Level 5', 'Reach level 5', X.level >= 5, null, 'level ' + X.level + ' now');
-  B('l10', 'L10', 'Level 10', 'Reach level 10', X.level >= 10, null, 'level ' + X.level + ' now');
   if (typeof gymBadgeList === 'function') { try { gymBadgeList().forEach(b => res.push(b)); } catch (e) { console.error('gym badges', e); } }
+  if (typeof fsBadgeList === 'function') { try { fsBadgeList().forEach(b => res.push(b)); } catch (e) { console.error('fitness badges', e); } }
   if (typeof storyBadgeList === 'function') { try { storyBadgeList().forEach(b => res.push(b)); } catch (e) { console.error('story badges', e); } }
   return res;
 }
@@ -107,14 +106,14 @@ function seasonBadges(X) {
 function seasonWarning() {
   const A = M.anchorDay; if (!A || !A.hasRec) return null;
   const z = (m, v) => { if (!isNum(v)) return null; const b = baselineAt(M, m, A.di, 28); return b.n >= 14 && b.sd > 0 ? (v - b.mean) / b.sd : null; };
-  const sig = [], checks = [
-    ['hrv', A.okRec ? A.hrv : null, x => x <= -1, 'HRV is below your usual'],
-    ['rhr', A.okRec ? A.rhr : null, x => x >= 1, 'resting heart rate is above your usual'],
-    ['skin', A.okRec ? A.skin : null, x => x >= 1.5, 'skin temperature is up'],
-    ['resp', A.okSleep && A.main ? A.main.resp : null, x => x >= 1.5, 'breathing rate is up']];
+  const sig = [], strong = [], checks = [
+    ['hrv', A.okRec ? A.hrv : null, x => x <= -1, x => x <= -2, 'HRV is below your usual'],
+    ['rhr', A.okRec ? A.rhr : null, x => x >= 1, x => x >= 2, 'resting heart rate is above your usual'],
+    ['skin', A.okRec ? A.skin : null, x => x >= 1.5, x => x >= 2, 'skin temperature is up'],
+    ['resp', A.okSleep && A.main ? A.main.resp : null, x => x >= 1.5, x => x >= 2, 'breathing rate is up']];
   let usable = 0;
-  checks.forEach(c => { const v = z(c[0], c[1]); if (v == null) return; usable++; if (c[2](v)) sig.push(c[3]); });
-  return { sig, usable };
+  checks.forEach(c => { const v = z(c[0], c[1]); if (v == null) return; usable++; if (c[2](v)) sig.push(c[4]); if (c[3](v)) strong.push(c[4]); });
+  return { sig, strong, usable, flag: sig.length >= 2 || strong.length >= 1 };
 }
 
 /* ---------- home ---------- */
@@ -231,9 +230,9 @@ function renderSeason() {
   const el = $('#seasonHome'); if (!el) return;
   seasonDefaults();
   if (!M || M.empty) { el.innerHTML = '<div class="banner">No WHOOP data in this file yet. Run SETUP.bat to pull it, or drop a whoop_data.json onto this page.</div>'; return; }
-  const A = M.anchorDay, X = seasonXP(), S = seasonSummary(), W = seasonWarning(), badges = seasonBadges(X);
+  const A = M.anchorDay, X = seasonXP(), F = fitnessModel(), S = seasonSummary(), W = seasonWarning(), badges = seasonBadges(X);
   const recent = pgRecords().filter(r => r.di != null && r.di >= M.anchor - 6);
-  const circ = 2 * Math.PI * 54, off = circ * (1 - clamp(X.frac, 0, 1));
+  const circ = 2 * Math.PI * 54, off = circ * (1 - clamp(F ? F.now.score / 100 : 0, 0, 1));
   const green28 = M.days.filter(d => d.okRec && d.di >= M.anchor - 27), g28 = green28.filter(d => d.recovery >= C.bandHi).length;
   // lifting weeks in a row, counting back from the last full week
   let streak = 0; const fullWks = sWeeks().filter(w => !w.partial);
@@ -246,16 +245,15 @@ function renderSeason() {
   try { h += todaysCall(); } catch (e) { console.error('call', e); }
 
   // hero
-  h += '<section class="card"><div class="hero"><div class="lvl" role="img" aria-label="Level ' + X.level + ', ' + X.total + ' experience points"><svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="54" stroke-width="9"/>' +
-    '<circle class="arc" id="lvlArc" cx="60" cy="60" r="54" stroke-width="9" stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + circ.toFixed(1) + '" data-to="' + off.toFixed(1) + '"/></svg><div class="in"><small>Level</small><b>' + X.level + '</b></div></div><div>';
+  h += '<section class="card"><div class="hero"><div class="lvl" role="img" aria-label="' + (F ? 'Fitness score ' + nf(F.now.score, 0) + ' of 100' : 'Fitness score not ready yet') + '"><svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="54" stroke-width="9"/>' +
+    '<circle class="arc" id="lvlArc" cx="60" cy="60" r="54" stroke-width="9" stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + circ.toFixed(1) + '" data-to="' + off.toFixed(1) + '"/></svg><div class="in"><small>Fitness</small><b>' + (F ? nf(F.now.score, 0) : '..') + '</b></div></div><div>';
   if (S) {
     h += '<span class="verdict ' + S.verdict.k + '">' + (S.verdict.k === 'up' ? '▲' : S.verdict.k === 'down' ? '▼' : '●') + ' ' + esc(S.verdict.t) + '</span>';
     h += '<p class="summary">Against your own 90 day average, <b>' + S.t.length + '</b> measures are better, <b>' + S.w.length + '</b> are worse and ' + S.s.length + ' are about the same.' +
       (S.top ? ' Biggest gain: ' + esc(S.top.r.label.replace(/ \(.*\)$/, '').toLowerCase()) + ', ' + esc(S.top.r.f(S.top.p.v)) + ' to ' + esc(S.top.r.f(S.top.c.v)) + '.' : '') +
       (S.watch ? ' Worth a look: ' + esc(S.watch.r.label.replace(/ \(.*\)$/, '').toLowerCase()) + ', ' + esc(S.watch.r.f(S.watch.p.v)) + ' to ' + esc(S.watch.r.f(S.watch.c.v)) + '.' : '') + '</p>';
-  } else h += '<span class="verdict flat">● Too early to call</span><p class="summary">The comparison needs about 40 days of data. You have ' + M.days.length + ' so far, and the level below is already counting.</p>';
-  h += '<div class="xpbar" role="img" aria-label="' + nf(X.frac * 100, 0) + ' percent of the way to level ' + (X.level + 1) + '"><i style="width:' + clamp(X.frac * 100, 0, 100).toFixed(0) + '%"></i></div>' +
-    '<div class="xpline">' + X.total.toLocaleString('en-US') + ' XP. ' + (X.hi - X.total).toLocaleString('en-US') + ' to level ' + (X.level + 1) + '. +' + X.week + ' this week, +' + X.l28 + ' in the last 28 days against +' + X.p28 + ' in the 28 before. ' + tag('MODELED') + '</div>';
+  } else h += '<span class="verdict flat">● Too early to call</span><p class="summary">The comparison needs about 40 days of data. You have ' + M.days.length + ' so far.</p>';
+  try { h += fsHeroExtra(); } catch (e) { console.error('fitness hero', e); }
   h += '</div></div>';
   const rb = A && A.okRec && isNum(A.recovery) ? bandOf(A.recovery) : null;
   h += '<div class="score">' +
@@ -268,8 +266,8 @@ function renderSeason() {
 
   // early warning
   if (W) {
-    if (W.sig.length >= 2) h += '<div class="ew" role="alert"><b>Early warning.</b> ' + esc(W.sig.join(', ')) + ' this morning. That mix can mean a cold coming on, a hard training block, alcohol or short sleep. It is a flag from your own baseline, not a diagnosis.</div>';
-    else h += '<div class="ew ok"><b>Early warning: clear.</b> ' + (W.sig.length ? 'One signal is off (' + esc(W.sig[0]) + '). It takes two to raise a flag.' : 'HRV, resting heart rate, skin temperature and breathing rate are all near your usual.') + ' <span class="muted">Checked against your last 28 days, ' + W.usable + ' of 4 signals available.</span></div>';
+    if (W.flag) h += '<div class="ew" role="alert"><b>Early warning.</b> ' + esc(W.sig.join(', ')) + ' this morning' + (W.sig.length < 2 ? ' (a strong signal on its own)' : '') + '. That can mean a cold coming on, a hard training block, alcohol or short sleep. It is a flag from your own baseline, not a diagnosis.</div>';
+    else h += '<div class="ew ok"><b>Early warning: clear.</b> ' + (W.sig.length ? 'One signal is off (' + esc(W.sig[0]) + '). It takes two, or one strong one, to raise a flag.' : 'HRV, resting heart rate, skin temperature and breathing rate are all near your usual.') + ' <span class="muted">Checked against your last 28 days, ' + W.usable + ' of 4 signals available.</span></div>';
   }
 
   // targets
@@ -308,11 +306,11 @@ function renderTargetsEditor() {
 }
 function renderLevelsInfo(X) {
   const el = $('#levelsBody'); if (!el) return;
-  el.innerHTML = '<p>Levels reward showing up. They do not measure fitness, so treat them as a scoreboard for consistency, with the real measures one tab over.</p>' +
-    '<ul><li>Lifting or running session: 40 XP. Any other training session: 30 XP. Walks, sauna and stretching do not count.</li><li>Every minute in ' + esc(zoneLabel()) + ': 1 XP.</li>' +
-    '<li>Green recovery day (' + C.bandHi + ' or higher): 10 XP. A night with 7 hours asleep or more: 10 XP.</li><li>A full week with ' + C.liftWeekMin + ' or more lifts: 50 XP bonus.</li><li>From your gym log: a new heaviest weight on a lift is 15 XP (up to 3 a day). A gym day WHOOP did not score as training is 40 XP. Finishing every planned workout in a program week is 40 XP.</li><li>Coming back: the first lift of a new attempt after a break of more than 14 days is 30 XP.</li></ul>' +
-    formula('level = floor(square root of (XP divided by 60)) + 1. Level L starts at 60 times (L minus 1) squared XP, so each level asks for more than the last. You are level ' + X.level + ' with ' + X.total.toLocaleString('en-US') + ' XP; level ' + (X.level + 1) + ' starts at ' + X.hi.toLocaleString('en-US') + '.') +
-    '<p class="sub">The point values are my choice, not WHOOP\'s. Badges are checked against your WHOOP records and show what is still missing.</p>';
+  const F = typeof fitnessModel === 'function' ? fitnessModel() : null;
+  el.innerHTML = '<p>The fitness score is a number from 0 to 100 that moves with how you actually train, recover and sleep. Consistency pays, new bests pay, and good weeks stacked in a row pay extra. Days without training cost points once they pass two in a row, and the score comes back as you do.</p>' +
+    (F ? '<div class="tgs">' + fsPillars(F) + '</div>' : '<p class="sub">It needs about 45 days of WHOOP data to start.</p>') +
+    (F ? fsExplain(F) : '') +
+    '<p class="sub">The point values are my design, not WHOOP\'s, and you can see every piece above. Badges are checked against your records and show what is still missing.</p>';
 }
 function renderLook() {
   const el = $('#lookBody'); if (!el) return;

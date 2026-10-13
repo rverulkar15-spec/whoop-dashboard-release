@@ -62,8 +62,12 @@ function gymModel() {
     });
     Object.keys(g.E).forEach(ex => { g.E[ex].sort((a, b) => a.di - b.di); });
     Object.keys(g.E).forEach(ex => {
-      let mx = 0;
-      g.E[ex].forEach((p, i) => { if (i >= 2 && p.w > mx) g.prs.push({ ex, di: p.di, w: p.w, prev: mx }); if (p.w > mx) mx = p.w; });
+      let mx = 0, mr = 0;      // a best is a heavier weight, or the same weight for more reps
+      g.E[ex].forEach((p, i) => {
+        const r = p.reps || 0;
+        if (i >= 2 && (p.w > mx || (p.w === mx && r > mr))) g.prs.push({ ex, di: p.di, w: p.w, reps: p.reps, prev: mx });
+        if (p.w > mx) { mx = p.w; mr = r; } else if (p.w === mx && r > mr) mr = r;
+      });
     });
     g.prs.sort((a, b) => a.di - b.di);
 
@@ -222,7 +226,7 @@ function gymBadgeList() {
   const res = [], B = (id, ic, name, desc, done, when, prog) => res.push({ id, ic, name, desc, done: !!done, when: done ? when : null, prog });
   const wk = gWeekRows(), full = wk.filter(w => w.complete);
   if (g.prog) B('pweek', 'PW', 'Program Week', 'Finish every planned workout in a program week', full.length > 0, full.length ? full[0].end : null, 'best week: ' + Math.max.apply(null, [0].concat(wk.map(w => w.done))) + ' of ' + (wk.length ? wk[wk.length - 1].planned : 4));
-  B('pr1', 'PR', 'Personal Best', 'Lift more weight than you ever have before on a lift', g.prs.length > 0, g.prs.length ? g.prs[0].di : null, 'none logged yet');
+  B('pr1', 'PR', 'Personal Best', 'Lift more weight, or the same weight for more reps, than you ever have on a lift', g.prs.length > 0, g.prs.length ? g.prs[0].di : null, 'none logged yet');
   B('pr10', 'P10', 'Ten Bests', 'Set 10 personal bests across your lifts', g.prs.length >= 10, g.prs[9] && g.prs[9].di, g.prs.length + ' of 10 so far');
   const days = Array.from(g.days).sort((p, q) => p - q);
   B('gym50', 'G50', 'Fifty Gym Days', '50 days logged in the gym, across all your exports', days.length >= 50, days[49], days.length + ' of 50 so far');
