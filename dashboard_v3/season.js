@@ -249,7 +249,7 @@ function renderSeason() {
     '<circle class="arc" id="lvlArc" cx="60" cy="60" r="54" stroke-width="9" stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + circ.toFixed(1) + '" data-to="' + off.toFixed(1) + '"/></svg><div class="in"><small>Fitness</small><b>' + (F ? nf(F.now.score, 0) : '..') + '</b></div></div><div>';
   if (S) {
     h += '<span class="verdict ' + S.verdict.k + '">' + (S.verdict.k === 'up' ? '▲' : S.verdict.k === 'down' ? '▼' : '●') + ' ' + esc(S.verdict.t) + '</span>';
-    h += '<p class="summary">Against your own 90 day average, <b>' + S.t.length + '</b> measures are better, <b>' + S.w.length + '</b> are worse and ' + S.s.length + ' are about the same.' +
+    h += '<p class="summary">Against your own 90 day average, of ' + S.judged + ' measures <b>' + S.t.length + '</b> are better, <b>' + S.w.length + '</b> worse and ' + S.s.length + ' about the same.' +
       (S.top ? ' Biggest gain: ' + esc(S.top.r.label.replace(/ \(.*\)$/, '').toLowerCase()) + ', ' + esc(S.top.r.f(S.top.p.v)) + ' to ' + esc(S.top.r.f(S.top.c.v)) + '.' : '') +
       (S.watch ? ' Worth a look: ' + esc(S.watch.r.label.replace(/ \(.*\)$/, '').toLowerCase()) + ', ' + esc(S.watch.r.f(S.watch.p.v)) + ' to ' + esc(S.watch.r.f(S.watch.c.v)) + '.' : '') + '</p>';
   } else h += '<span class="verdict flat">● Too early to call</span><p class="summary">The comparison needs about 40 days of data. You have ' + M.days.length + ' so far.</p>';
@@ -294,7 +294,7 @@ function renderSeason() {
   renderTargetsEditor(); renderLevelsInfo(X);
   const gb = $('#gymBody'); if (gb && typeof renderGym === 'function') { try { gb.innerHTML = renderGym(); } catch (e) { console.error('gym', e); gb.innerHTML = '<div class="banner err">The strength section could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; } }
   try { renderStory(); } catch (e) { console.error('story', e); const sb = $('#storyBody'); if (sb) sb.innerHTML = '<div class="banner err">The story could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; }
-  const lv = $('#leversBody'); if (lv) { try { lv.innerHTML = leversCard() + (typeof journalCard === 'function' ? journalCard() : ''); } catch (e) { console.error('levers', e); lv.innerHTML = ''; } }
+  const lv = $('#leversBody'); if (lv) { try { lv.innerHTML = (typeof fsCard === 'function' ? fsCard() : '') + leversCard() + (typeof journalCard === 'function' ? journalCard() : ''); } catch (e) { console.error('levers', e); lv.innerHTML = ''; } }
 }
 
 /* ---------- targets editor and info ---------- */
@@ -401,6 +401,10 @@ function route() {
     const v = parseFloat(t.value); if (!isFinite(v) || v < 0) { renderTargetsEditor(); return; }
     C[t.dataset.sgoal] = v; saveControls(); renderAll(true);
   });
+  function a11yScroll() {
+    $$('.scroll:not([tabindex])').forEach(el => { el.setAttribute('tabindex', '0'); el.setAttribute('role', 'region'); el.setAttribute('aria-label', 'Scrollable table'); });
+  }
+  new MutationObserver(a11yScroll).observe(document.body, { childList: true, subtree: true }); a11yScroll();
   window.addEventListener('hashchange', route);
   route();
 })();

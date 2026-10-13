@@ -1,7 +1,7 @@
 {
- "release": 6,
+ "release": 7,
  "files": {
-  "README.txt": "7711f1cc9804034e23815f94af745f0efa62f9cf61badc4945ffdd8d6b0d06de",
+  "README.txt": "8d06c40f4d98160e679e37b0159e5d75ec0a1298c43e86852ce957b324d014d8",
   "gym.py": "52302b38c1225c1c1ada3d5707623ec5b025568b390501fafa88a5f14da972c3",
   "mailer.py": "d78ebbf3d97da1181d26feb46c6e750be3808dccfdc731f34e610d6ae5a0ddca",
   "update.py": "f66d0ed158decc86225bd4157241eb65d5f7b3b39a49876f7199fe488d6a25e7",
@@ -20,9 +20,9 @@
   "dashboard_v3/gym.js": "c626b8885929f1c3934e638a35a851e5e31ae4299ad07699856f586102ea8e2d",
   "dashboard_v3/index.html": "8434d477aeb29bb45fd06d448c0536a49e5d7a27637b7ebfbd4fbb55af6de2e3",
   "dashboard_v3/journal.js": "db2af2662e3ddc76aa8c3cd9398c563ea4303da4a33dbafa21c243a5fb51e260",
-  "dashboard_v3/score.js": "cd8653355df307d11a78a6ce44cf9459be6b07462ac735eb559c2d8b5dfe8d4a",
-  "dashboard_v3/season.js": "61b30564aca6fc9b94696b9573767af78939ad902f12a75a7182fd2198c52eb4",
+  "dashboard_v3/score.js": "b24381b7b57a064b954a03cd6c0031b0d54f4f7cf81300f2a658a7f6829dff02",
+  "dashboard_v3/season.js": "1db6c3d67247500e34cd6980d54591769ec13594e707e58baf2e5082c05bb7ec",
   "dashboard_v3/story.js": "29be7690d125c752cc07fde0f5140ac72858e451a7f1aa5e2c643698376c6ef7",
-  "dashboard_v3/theme.css": "08c25859f786c49fdb6741c4a96bf6977003f3b8464980a293110821209336b3"
+  "dashboard_v3/theme.css": "3f5b482b29a0013e51ec67392ddcceed39007648ace5f93bb1891a1a616bd536"
  }
 }

@@ -11,9 +11,9 @@
   color-scheme:dark;
 }
 :root[data-theme=light]{
-  --bg:#f4f1e6; --panel:#fcfaf3; --panel2:#eeead9; --line:#d9d3bc; --text:#14231a; --muted:#53655a;
-  --accent:#1c5fe0; --accent2:#a8780a; --good:#17814f; --warn:#8f6400; --bad:#bb3434;
-  --gold:#b98708; --gold-soft:rgba(185,135,8,.14); --blue-soft:rgba(28,95,224,.10);
+  --bg:#f4f1e6; --panel:#fcfaf3; --panel2:#eeead9; --line:#d9d3bc; --text:#14231a; --muted:#46584d;
+  --accent:#1c5fe0; --accent2:#7d5a05; --good:#116a40; --warn:#765000; --bad:#a82a2a;
+  --gold:#80590a; --gold-soft:rgba(185,135,8,.14); --blue-soft:rgba(28,95,224,.10);
   --on-accent:#ffffff; --inset:#f7f4e8; --hl:#efe9d2; --shadow:0 8px 24px rgba(60,50,20,.10);
   --warnbg:#fbf0cf; --errbg:#fbe0dc; --axis:#bdb59a; --ref:#8a9486;
   color-scheme:light;
@@ -169,7 +169,7 @@ tr.hl td{background:var(--hl)}
 .bd.new{animation:glowbox 3.6s ease-in-out infinite;border-color:var(--gold)}
 .bd b{display:block;font-size:14px;line-height:1.2}
 .bd small{display:block;color:var(--muted);font-size:12px;line-height:1.3;margin-top:2px}
-.bd.off{opacity:.78}
+.bd.off{border-style:dashed}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .chipx{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--gold);color:var(--gold);background:var(--gold-soft);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700}
 
@@ -242,7 +242,7 @@ details.fm>summary{cursor:pointer;color:var(--muted);font-size:14px;min-height:3
 .gd.done small{color:var(--on-accent);opacity:.85}
 .gd.miss{border-color:var(--bad);color:var(--bad)}
 .gd.now{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold-soft)}
-.gd.rest{opacity:.55}
+.gd.rest{border-style:dashed}
 .gd.tdy small{color:var(--gold);font-weight:800}
 .gx{border:1px solid var(--line);border-radius:14px;padding:11px 14px;margin:10px 0;background:var(--inset)}
 .gx.skip{opacity:.55}
@@ -299,3 +299,8 @@ details.fm>summary{cursor:pointer;color:var(--muted);font-size:14px;min-height:3
 .st-tiles span,.st-pairs span{display:block;color:var(--muted);font-size:12px}
 .st-pairs span.good{color:var(--good)}.st-pairs span.warn{color:var(--warn)}
 .st-h3{font-size:15px;margin:16px 0 4px}
+
+:root[data-theme="light"] [style*="color:#3fc78a"]{color:#116a40!important}
+:root[data-theme="light"] [style*="color:#f2c14e"]{color:#765000!important}
+:root[data-theme="light"] [style*="color:#f26d6d"]{color:#a82a2a!important}
+:root[data-theme="light"] .sg0{color:#fff!important}

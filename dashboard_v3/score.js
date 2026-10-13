@@ -72,7 +72,7 @@ function fitnessModel() {
       for (let d = from; d <= A; d++) { const r = fsDay(I, d); if (r) series.push(r); }
       if (series.length) {
         const now = series[series.length - 1], back = series.filter(x => x.di <= A - 28).pop() || null;
-        val = { series, now, back, change: back ? now.score - back.score : null, best: Math.max.apply(null, series.map(x => x.score)) };
+        val = { I, A, series, now, back, change: back ? now.score - back.score : null, best: Math.max.apply(null, series.map(x => x.score)) };
       }
     }
   } catch (e) { console.error('fitness', e); }
@@ -101,11 +101,51 @@ function fsHeroExtra() {
   const F = fitnessModel();
   if (!F) return '<p class="summary">The fitness score needs about 45 days of WHOOP data to start. It is counting already.</p>';
   const pts = F.series.map(x => x.score);
-  return '<p class="summary">' + esc(fsLine(F)) + '</p>' + (pts.length >= 3 ? sparkline(pts, 220, 34) : '') +
+  let nm = ''; try { const a = fsAdvice(F).find(x => x.gain >= 1); if (a) nm = ' <b>Next best move:</b> ' + esc(a.text); } catch (e) { console.error('fitness advice', e); }
+  return '<p class="summary">' + esc(fsLine(F)) + nm + '</p>' + (pts.length >= 3 ? sparkline(pts, 220, 34) : '') +
     '<div class="xpline">Fitness score ' + nf(F.now.score, 0) + ' of 100. Best in this view: ' + nf(F.best, 0) + '. ' + tag('MODELED') + '</div>';
 }
 function fsBadgeList() {
   const F = fitnessModel(); if (!F) return [];
   const first = t => { const x = F.series.find(s => s.score >= t); return x ? x.di : null; };
   return [60, 75].map(t => ({ id: 'fs' + t, ic: 'F' + t, name: 'Fitness ' + t, desc: 'Reach a fitness score of ' + t, done: F.best >= t, when: first(t), prog: 'best so far: ' + nf(F.best, 0) + ' of ' + t }));
+}
+
+/* ---------- what moved it, and what would raise it (MODELED: the same formula run on a "what if") ---------- */
+function fsMovers(F) {
+  if (!F.back) return [];
+  return Object.keys(FS_MAX).map(k => {
+    const a = F.now.P[k], b = F.back.P[k];
+    return a == null || b == null ? null : { k, d: a - b };
+  }).filter(x => x && Math.abs(x.d) >= 1).sort((p, q) => Math.abs(q.d) - Math.abs(p.d));
+}
+function fsAdvice(F) {
+  const out = [], I = F.I, A = F.A, now = F.now.score;
+  const cp = o => Object.assign({}, I, o);
+  const withSet = (set, di) => { const n = new Set(set); n.add(di); return n; };
+  const trainedToday = I.train.has(A), liftedToday = I.lift.has(A);
+  if (!trainedToday) {
+    const r = fsDay(cp({ train: withSet(I.train, A) }), A);
+    if (r && r.score - now >= 1) out.push({ gain: r.score - now, text: (F.now.idle > 2 ? 'Training today ends the ' + stD(F.now.idle) + ' gap and is worth about ' : 'Any training today is worth about ') + nf(r.score - now, 0) + ' points.' });
+  }
+  if (!liftedToday) {
+    const r = fsDay(cp({ train: withSet(I.train, A), lift: withSet(I.lift, A) }), A);
+    if (r && r.score - now >= 1) out.push({ gain: r.score - now, text: 'A lift today is worth about ' + nf(r.score - now, 0) + ' points (it counts toward your weekly target as well).' });
+  }
+  const weak = Object.keys(FS_MAX).filter(k => F.now.P[k] != null).map(k => ({ k, r: F.now.P[k] / FS_MAX[k] })).sort((p, q) => p.r - q.r)[0];
+  if (weak && weak.r < 0.7) {
+    const how = { train: 'Hitting your lifting target each week lifts this fastest.', strength: 'Beat a past weight, or add a rep at the same weight, on a few lifts.', cardio: 'More weekly zone minutes and running distance, against your Goals.', recovery: 'Slow to move: it follows weeks of steady sleep and easy days.', sleep: 'Aim for 7 hours or more on most nights.' }[weak.k];
+    out.push({ gain: 0, text: 'Weakest area: ' + FS_NAME[weak.k].toLowerCase() + ' at ' + nf(weak.r * 100, 0) + '% of its points. ' + how });
+  }
+  return out.sort((p, q) => q.gain - p.gain).slice(0, 3);
+}
+function fsCard() {
+  const F = fitnessModel(); if (!F || F.series.length < 7) return '';
+  const adv = fsAdvice(F), mv = fsMovers(F).slice(0, 3);
+  let h = '<section class="card"><div class="sec-h"><h2>Your fitness score over time</h2>' + tag('MODELED') + '</div>';
+  h += lineChart({ title: 'Fitness score, last ' + F.series.length + ' days', w: 720, h: 220, y0: 0, y1: 100, hlines: [{ y: 60, label: '60' }, { y: 75, label: '75' }], series: [{ label: 'Fitness score', unit: '', pts: F.series.map(x => [x.di, Math.round(x.score * 10) / 10]) }] });
+  if (mv.length) h += '<p class="sub">What moved it against 28 days ago: ' + esc(mv.map(m => FS_NAME[m.k].toLowerCase() + ' ' + (m.d > 0 ? 'up ' : 'down ') + nf(Math.abs(m.d), 0) + ' points').join(', ')) + '.</p>';
+  if (adv.length) h += '<h3 class="st-h3">What would raise it</h3><ul class="calllist">' + adv.map(a => '<li>' + esc(a.text) + '</li>').join('') + '</ul>';
+  h += formula('each point on the line is the same score calculation run on the 28 days (56 for strength) ending that day, so history is rebuilt from your records and is never stored. The "what would raise it" lines rerun today with one extra session added and report the difference.') + '</section>';
+  return h;
 }
