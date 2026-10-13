@@ -3,7 +3,7 @@
  "files": {
   "README.txt": "ed7a58d3a0a5d3bdf5ad4965f3e9ee64ba333f1d38013bbf29d1747c6ba4cd7f",
   "WORKOUT_LOG_FORMAT.txt": "631f443ac72b4c5c6001307da26a71b078ac13f0abc2aa3d2d1e7846fbe1c7ec",
-  "gym.py": "b31e3f9ba75e913df6e4ab7f483ade8fa0bb414d690a1fe945f91af566f9f9d5",
+  "gym.py": "35fd5bfd866ad6dd0206c707d1d26eb5ad2cbe8ec75242e4fdfe80fa38dea149",
   "mailer.py": "b052b95da6579bbc8cf7555075f94a989023d43d065e20b9f8a085cf107e968b",
   "update.py": "f66d0ed158decc86225bd4157241eb65d5f7b3b39a49876f7199fe488d6a25e7",
   "whoop.py": "81cf1bbd24171008f97a27a579e8c6d34d76e9c2b7a4984fb7cbd294d682a8d9",

@@ -456,6 +456,8 @@ def merge_log(arch, sessions, fname, mtime, size):
     src = arch.setdefault("source", {"files": []})
     src["files"] = [f for f in src.get("files", []) if f.get("name") != fname] + [{"name": fname, "mtime": int(mtime), "size": size, "log": True}]
     src["updated_at"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if added:                        # the log now reaches at least to the newest logged workout
+        src["exported_on"] = max([x for x in (src.get("exported_on"), max(s["date"] for s in sessions)) if x])
     return added, skipped
 
 
