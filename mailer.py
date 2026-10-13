@@ -65,40 +65,25 @@ def sleep_hours(s):
 
 
 def windows(archive, now):
-    """Return {metric: (last28 mean, n, prior28 mean, n)} using UTC record times."""
-    a, b = now - timedelta(days=28), now - timedelta(days=56)
+    """Return {metric: (last28 mean, n, prior28 mean, n)} by local day, the same days the dashboard uses.
+    The last window ends on the newest day that has a recovery score."""
+    days, wk = _flat(archive)
+    rec_days = [i for i, d in days.items() if d.get("recovery") is not None]
+    if not rec_days:
+        return {}, 0, 0
+    A = max(rec_days)
 
-    def pick(rows, tkey, fn):
-        cur, prv = [], []
-        for r in rows:
-            if r.get("score_state") != "SCORED" or not r.get("score"):
-                continue
-            if r.get("nap"):
-                continue
-            t = ts(r[tkey])
-            v = fn(r)
-            if v is None:
-                continue
-            if t >= a:
-                cur.append(v)
-            elif t >= b:
-                prv.append(v)
-        return cur, prv
-
+    def span(k, a, b):
+        v = [d[k] for i, d in days.items() if a <= i <= b and d.get(k) is not None]
+        return (sum(v) / len(v) if v else None), len(v)
     out = {}
-    for name, rows, tkey, fn in (
-        ("Recovery", archive["recovery"], "created_at", lambda r: r["score"].get("recovery_score")),
-        ("HRV (ms)", archive["recovery"], "created_at", lambda r: r["score"].get("hrv_rmssd_milli")),
-        ("Resting HR", archive["recovery"], "created_at", lambda r: r["score"].get("resting_heart_rate")),
-        ("Sleep hours", archive["sleep"], "end", sleep_hours),
-        ("Sleep performance", archive["sleep"], "end", lambda r: r["score"].get("sleep_performance_percentage")),
-        ("Day strain", archive["cycles"], "start", lambda r: r["score"].get("strain")),
-    ):
-        cur, prv = pick(rows, tkey, fn)
-        (m1, n1), (m2, n2) = mean(cur), mean(prv)
+    for name, k in (("Recovery", "recovery"), ("HRV (ms)", "hrv"), ("Resting HR", "rhr"), ("Sleep hours", "asleep"),
+                    ("Sleep performance", "perf"), ("Day strain", "strain")):
+        (m1, n1), (m2, n2) = span(k, A - 27, A), span(k, A - 55, A - 28)
         out[name] = (m1, n1, m2, n2)
-    wc = sum(1 for w in archive["workouts"] if w.get("score_state") == "SCORED" and ts(w["start"]) >= a)
-    wp = sum(1 for w in archive["workouts"] if w.get("score_state") == "SCORED" and b <= ts(w["start"]) < a)
+    train = [w for w in wk if w["sport"] not in NONTRAIN]      # same rule as the dashboard: no walks, sauna or stretching
+    wc = sum(1 for w in train if A - 27 <= w["di"] <= A)
+    wp = sum(1 for w in train if A - 55 <= w["di"] <= A - 28)
     return out, wc, wp
 
 
@@ -392,7 +377,7 @@ def build(archive, now=None):
         lines.append("%s: %.1f vs %.1f, %s %.1f (%.0f%%), n=%d and %d" % (k, m1, m2, word, abs(d), abs(pct), n1, n2))
         if GOOD_UP[k] is not None and min(n1, n2) >= 10:
             moves.append((pct if GOOD_UP[k] else -pct, k, word))
-    lines.append("Workouts: %d vs %d" % (wc, wp))
+    lines.append("Workouts (not counting walks, sauna or stretching): %d vs %d" % (wc, wp))
     if moves:
         moves.sort()
         best, worst = moves[-1], moves[0]
@@ -470,11 +455,14 @@ def _flat(archive):
         d = day(_di(ts(s["end"]), s["timezone_offset"]))
         d["asleep"] = sleep_hours(s)
         d["cons"] = s["score"].get("sleep_consistency_percentage")
+        d["perf"] = s["score"].get("sleep_performance_percentage")
     for c in archive["cycles"]:
         sc = c.get("score")
         s = sl_by_cycle.get(c["id"])
         if not sc or not c.get("end") or not s:
             continue
+        if (ts(c["end"]) - ts(c["start"])).total_seconds() / 3600.0 > LONG_H:
+            continue                      # the dashboard leaves out cycles longer than 36 hours
         d = day(_di(ts(s["end"]), s["timezone_offset"]))
         d["strain"], d["steps"] = sc.get("strain"), c.get("step_count")
     wk = []
