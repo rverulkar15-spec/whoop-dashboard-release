@@ -43,7 +43,7 @@ function planCard() {
   const done = fsCount(I.lift, P.H - 6, A), rest = P.rows[0], now = F.now.score;
   const hit = P.rows.find(r => !r.prog && done + r.k >= tgt), best = P.rows.reduce((b, r) => r.score > b.score ? r : b, P.rows[0]);
   let h = '<section class="card"><div class="sec-h"><h2>Plan your week</h2>' + tag('MODELED') + '</div>';
-  h += '<p class="sub">Where the fitness score would land on ' + esc(fmtDayW(P.H)) + ', with everything else as it is today. You have ' + done + ' of ' + tgt + ' lifts in this window so far.</p>';
+  h += '<p class="sub">Where the fitness level would land on ' + esc(fmtDayW(P.H)) + ', with everything else as it is today. You have ' + done + ' of ' + tgt + ' lifts in this window so far.</p>';
   h += '<div class="scroll"><table><thead><tr><th>More lifts</th><th>Days</th><th class="n">Score then</th><th class="n">Against today</th></tr></thead><tbody>' +
     P.rows.map(r => {
       const d = r.score - now;
@@ -53,7 +53,7 @@ function planCard() {
   const gap = best.score - rest.score, pr = P.rows.find(r => r.prog);
   if (gap >= 1) h += '<p class="st-text">' + (hit && hit.k > 0 ? 'Hitting your target of ' + tgt + ' lifts lands near ' + nf(hit.score, 0) + ', against ' + nf(rest.score, 0) + ' if the rest of the week is off. ' : 'Resting the whole way lands near ' + nf(rest.score, 0) + '. ') +
     (rest.pen > 0 ? 'The idle penalty alone is ' + nf(rest.pen, 0) + ' points of that. ' : '') + (pr ? 'Following your program for the rest of the week lands near ' + nf(pr.score, 0) + '.' : '') + '</p>';
-  h += formula('the same fitness score formula run for ' + fmtDay(P.H) + ', with the listed days counted as lifting days spread across the open days. Hours slept, recovery trend, cardio and personal bests are held as they stand today, so a good week of sleep or a new best would only add to this. Open days run from ' + fmtDay(I.lift.has(A) ? A + 1 : A) + '. It is a what-if, not a prediction.');
+  h += formula('the same fitness score formula run for ' + fmtDay(P.H) + ', with the listed days counted as lifting days spread across the open days. Hours slept, recovery, cardio and personal bests are held as they stand today, so a good week of sleep or a new best would only add to this. Open days run from ' + fmtDay(I.lift.has(A) ? A + 1 : A) + '. It is a what-if, not a prediction.');
   return h + '</section>';
 }
 

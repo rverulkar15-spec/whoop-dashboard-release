@@ -306,13 +306,13 @@ function renderSeason() {
 function renderTargetsEditor() {
   const el = $('#targetsBody'); if (!el) return;
   const F = [['liftWeekMin', 'Lifting sessions per week', 1, 14, 1], ['goalWorkouts', 'Workouts per week', 1, 14, 1], ['goalZ2', 'Minutes in ' + zoneLabel() + ' per week', 0, 600, 5], ['goalRun', 'Running distance per week (' + U.dU() + ')', 0, 100, 0.5], ['goalSleep', 'Hours asleep per night', 4, 12, 0.25]];
-  el.innerHTML = '<p class="sub">These drive the bars on the Today tab, and the lifting target also sets the weekly bonus and the Lift Habit badge. Change them whenever you like. They are saved in this browser.</p><div class="goalgrid">' +
+  el.innerHTML = '<p class="sub">These drive the bars on the Today tab, and the lifting target also sets the Lift Habit badge and your lifting consistency. Change them whenever you like. They are saved in this browser.</p><div class="goalgrid">' +
     F.map(f => '<div class="field"><label for="sg-' + f[0] + '">' + esc(f[1]) + '</label><input id="sg-' + f[0] + '" data-sgoal="' + f[0] + '" type="number" inputmode="decimal" min="' + f[2] + '" max="' + f[3] + '" step="' + f[4] + '" value="' + esc(C[f[0]]) + '"></div>').join('') + '</div>';
 }
 function renderLevelsInfo(X) {
   const el = $('#levelsBody'); if (!el) return;
   const F = typeof fitnessModel === 'function' ? fitnessModel() : null;
-  el.innerHTML = '<p>The fitness score is a number from 0 to 100 that moves with how you actually train, recover and sleep. Consistency pays, new bests pay, and good weeks stacked in a row pay extra. Days without training cost points once they pass two in a row, and the score comes back as you do.</p>' +
+  el.innerHTML = '<p>The fitness score has two parts. Level is a number from 0 to 100 for where you stand now: how you train, push, recover and sleep over the last four weeks. Meeting your own Goals lands near 70, so the top of the scale has to be earned by going past them and by real progress. Momentum shows which way you are moving against your own earlier weeks. Days without training cost points once they pass two in a row, and the score comes back as you do.</p>' +
     (F ? '<div class="tgs">' + fsPillars(F) + '</div>' : '<p class="sub">It needs about 45 days of WHOOP data to start.</p>') +
     (F ? fsExplain(F) : '') +
     '<p class="sub">The point values are my design, not WHOOP\'s, and you can see every piece above. Badges are checked against your records and show what is still missing.</p>';

@@ -1,7 +1,7 @@
 {
- "release": 14,
+ "release": 15,
  "files": {
-  "README.txt": "ed7a58d3a0a5d3bdf5ad4965f3e9ee64ba333f1d38013bbf29d1747c6ba4cd7f",
+  "README.txt": "1b829e8d35f1911239be2ce753836c57192ca470a351c68138612bd9a850127d",
   "WORKOUT_LOG_FORMAT.txt": "9d19d0bcdc38373afe73b0f28645ad4486049ac65fbb9eb9b67055b520258155",
   "gym.py": "a33655b632a3d49387f51ed2ed82dfa43cbfcef164aa84113f625637ee224e53",
   "mailer.py": "b052b95da6579bbc8cf7555075f94a989023d43d065e20b9f8a085cf107e968b",
@@ -21,9 +21,9 @@
   "dashboard_v3/gym.js": "09adb555ae87e9f031abff160de3ed6f8655f41265daa04de614db6f0259cb86",
   "dashboard_v3/index.html": "8434d477aeb29bb45fd06d448c0536a49e5d7a27637b7ebfbd4fbb55af6de2e3",
   "dashboard_v3/journal.js": "db2af2662e3ddc76aa8c3cd9398c563ea4303da4a33dbafa21c243a5fb51e260",
-  "dashboard_v3/plan.js": "36aed5d2037157cc936e33d0fed590bf72382aca19653d4c191372b1d1c22887",
-  "dashboard_v3/score.js": "b24381b7b57a064b954a03cd6c0031b0d54f4f7cf81300f2a658a7f6829dff02",
-  "dashboard_v3/season.js": "1f0e72bb746a539c35933df219dcd0b2c2218440e1decb326d2633923b96f2a6",
+  "dashboard_v3/plan.js": "dee00f04f8fb0df43efd5ab8f4b57827ecd6391a0c63a79c05a4726fa19f9c01",
+  "dashboard_v3/score.js": "97fdc66a408cfa1c2828855ab27d8d5babed61e4c1830d3699a64cc0a3ac41b5",
+  "dashboard_v3/season.js": "e0735384113537166712f1f11049777c7fd514e0b4b6cb565a2386ff5e885004",
   "dashboard_v3/story.js": "29be7690d125c752cc07fde0f5140ac72858e451a7f1aa5e2c643698376c6ef7",
   "dashboard_v3/theme.css": "267190a9a2a61f002320ddc17da54f6cab1e74da474fea53fa1835c5e356bbcd"
  }
