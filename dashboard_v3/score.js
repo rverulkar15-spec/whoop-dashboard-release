@@ -111,6 +111,54 @@ function fsStatus(mo, r, d) {
   return { k: 'holding', t: 'Holding' };
 }
 
+/* ---------- Season total: the running total of how you are doing (MODELED) ---------- */
+/* Each day is scored from that day's own sleep and recovery and from your weekly pace in lifting, effort and cardio.
+   A day above the bar adds points, a day below it takes points away, and a great day and a bad day move the line by about the same amount.
+   Every good week raises a combo that makes your gains count for more, and a rough week halves it. Personal records add bursts. */
+const FS_BAR = 75, FS_GMAX = 3, FS_GOOD = 70, FS_PR_PTS = 0.75, FS_PR_CAP = 3, FS_COMBO_MAX = 10, FS_COMBO_STEP = 0.05;
+const FS_DW = { train: 22, effort: 18, cardio: 14, recovery: 10, sleep: 26 };
+const FS_SK = ['train', 'strength', 'effort', 'cardio', 'recovery', 'sleep'];
+function fsGain(s) { return s >= FS_BAR ? (s - FS_BAR) / (100 - FS_BAR) * FS_GMAX : -(FS_BAR - s) / FS_BAR * FS_GMAX; }
+function fsPace(I, d) {
+  const S = {}, tgt = Math.max(1, C.liftWeekMin || 3);
+  const hrs = I.slp.get(d);
+  if (hrs != null) { const cv = I.cons.get(d); S.sleep = cv != null ? 0.7 * fsLv(hrs / (C.goalSleep || 7.5)) + 0.3 * fsLv(cv / 70) : fsLv(hrs / (C.goalSleep || 7.5)); }
+  if (I.rec.has(d)) S.recovery = fsLv(I.rec.get(d) / 67);       // 67 is WHOOP's green mark, so a green day counts as meeting the goal
+  if (I.firstLift != null && d >= I.firstLift) S.train = fsLv(Math.min(2, fsCount(I.lift, d - 6, d) / tgt));
+  if (I.firstW != null && d >= I.firstW) {
+    const w = I.wos.filter(x => x.di > d - 7 && x.di <= d);
+    S.effort = fsLv((sum(w.map(fsHardMin)) / FS_HARD_REF + sum(w.filter(isLift).map(x => x.durMin)) / FS_LIFTMIN_REF) / 2);
+    const rat = [];
+    if (C.goalZ2 > 0) rat.push(Math.min(2, sum(w.map(wZoneMin)) / C.goalZ2));
+    if (C.goalRun > 0) rat.push(Math.min(2, sum(w.filter(x => x.runOk).map(x => U.d(x.km))) / C.goalRun));
+    if (rat.length) S.cardio = fsLv(mean(rat));
+  }
+  if (fsDeloadWeek(d)) ['train', 'effort', 'cardio'].forEach(k => { if (S[k] != null) S[k] = Math.max(S[k], FS_BAR); });
+  const ks = Object.keys(S); let D = null;
+  if (ks.length >= 3) { const tw = sum(ks.map(k => FS_DW[k])); D = sum(ks.map(k => S[k] * FS_DW[k])) / tw; }
+  return { S, D, tw: ks.length ? sum(ks.map(k => FS_DW[k])) : 0 };
+}
+function fsSeason(I, first, A) {
+  const tot = {}; FS_SK.forEach(k => tot[k] = 0);
+  const prs = new Map(); if (I.g) I.g.prs.forEach(p => prs.set(p.di, (prs.get(p.di) || 0) + 1));
+  let combo = 0, blk = [], rows = [];
+  for (let d = first; d <= A; d++) {
+    const pc = fsPace(I, d), mult = 1 + FS_COMBO_STEP * combo;
+    let pts = 0, paused = pc.D == null;
+    if (!paused) {
+      Object.keys(pc.S).forEach(k => { const g = fsGain(pc.S[k]) * FS_DW[k] / pc.tw, v = g > 0 ? g * mult : g; tot[k] = Math.max(0, tot[k] + v); pts += v; });
+      blk.push(pc.D);
+    }
+    const n = Math.min(FS_PR_CAP, prs.get(d) || 0);
+    if (n) { const v = n * FS_PR_PTS * mult; tot.strength += v; pts += v; paused = false; }
+    rows.push({ di: d, total: sum(FS_SK.map(k => tot[k])), tot: Object.assign({}, tot), pts, D: pc.D, S: pc.S, mult, combo, paused, prs: n });
+    if (d % 7 === 0) { if (blk.length >= 4) combo = mean(blk) >= FS_GOOD ? Math.min(FS_COMBO_MAX, combo + 1) : Math.floor(combo / 2); blk = []; }
+  }
+  const last = rows[rows.length - 1], w14 = rows.slice(-14).filter(r => !r.paused);
+  const pace = w14.length >= 7 ? sum(w14.map(r => r.pts)) / w14.length * 7 : null;
+  return { rows, now: last, pace, combo: last.combo, mult: 1 + FS_COMBO_STEP * last.combo };
+}
+
 function fitnessModel() {
   if (FS && FS.key === M) return FS.val;
   let val = null;
@@ -123,7 +171,8 @@ function fitnessModel() {
       const shown = all.filter(okd), series = shown.filter(x => x.di >= A - 89);
       if (series.length) {
         const now = series[series.length - 1], back = series.filter(x => x.di <= A - 28).pop() || null;
-        val = { I, A, all: shown, byDi, series, now, back, change: back ? now.score - back.score : null, best: Math.max.apply(null, series.map(x => x.score)), mo: now.mo, status: now.status };
+        const season = fsSeason(I, first, A);
+        val = { season, I, A, all: shown, byDi, series, now, back, change: back ? now.score - back.score : null, best: Math.max.apply(null, series.map(x => x.score)), mo: now.mo, status: now.status };
       }
     }
   } catch (e) { console.error('fitness', e); }
@@ -230,7 +279,7 @@ function fsPillars(F) {
   }).join('');
 }
 function fsExplain(F) {
-  return formula('LEVEL. Each day is scored from the 28 days that end on it (56 for strength). Six areas, weighted: lifting consistency 20 (the last four weeks against your weekly lifting target, newest week counting 40 percent, then 30, 20, 10), strength 20 (half from the share of your tracked lifts that set a new best in 56 days, half from how close your recent top weights are to your best ever), effort 15 (minutes a week in the two hardest heart rate zones against ' + FS_HARD_REF + ', and minutes lifting against ' + FS_LIFTMIN_REF + '), cardio 15 (zone minutes and running distance per week against your Goals), recovery 15 (your average WHOOP recovery over the 28 days; HRV and resting heart rate changes are on the growth board), sleep 15 (hours against your goal, nights of 7 hours or more, and sleep consistency against 70 percent). Where an area has a Goal or reference, meeting it scores 70, and going past it scores more with diminishing returns (1.5 times the goal is about 89), so completing your Goals is a solid mark, not the top one. Areas without enough data are left out and the rest is scaled to 100. After 2 days without training each further day costs 3 points (up to 30). MOMENTUM. Your Level over the latest 28 days, minus the average Level over the 90 days before those. 4 points or more is Building, within 4 either way is Holding, 4 or more down is Slipping (Recovery week during a planned deload), and 10 down, or 10 days idle, is Detraining. Until 90 days of history exist it uses what exists, at least ' + FS_MIN_BASE + ' days. The weights, the 70 mark and the cutoffs are my design from your own numbers, not a medical or lab measure of fitness; the numbers inside it are measured.');
+  return formula('SEASON TOTAL. A running score that starts on your first WHOOP day. Each day is scored 0 to 100 from that day\'s own numbers: sleep (hours against your goal, and consistency), recovery (67 percent, WHOOP\'s green mark, counts as meeting the goal), and your weekly pace over the 7 days ending that day in lifting days, hard zone and lifting minutes, and cardio. A planned deload week cannot score below the bar. A day above ' + FS_BAR + ' adds points and a day below takes them away, scaled so a perfect day and a zero day move the line by the same amount (up to ' + FS_GMAX + ' points). Each area keeps its own total, which cannot go below zero, and the season total is their sum. Every week at ' + FS_GOOD + ' or better adds one step to the combo (each step is 5 percent more on gains, up to ' + FS_COMBO_MAX + ' steps), and a week below that halves it. New personal bests add ' + FS_PR_PTS + ' points each (up to ' + FS_PR_CAP + ' a day, also boosted by the combo). Days without enough data pause the score and never count against you. The bar, the weights and the combo are my design, not a lab measure. LEVEL. Each day is scored from the 28 days that end on it (56 for strength). Six areas, weighted: lifting consistency 20 (the last four weeks against your weekly lifting target, newest week counting 40 percent, then 30, 20, 10), strength 20 (half from the share of your tracked lifts that set a new best in 56 days, half from how close your recent top weights are to your best ever), effort 15 (minutes a week in the two hardest heart rate zones against ' + FS_HARD_REF + ', and minutes lifting against ' + FS_LIFTMIN_REF + '), cardio 15 (zone minutes and running distance per week against your Goals), recovery 15 (your average WHOOP recovery over the 28 days; HRV and resting heart rate changes are on the growth board), sleep 15 (hours against your goal, nights of 7 hours or more, and sleep consistency against 70 percent). Where an area has a Goal or reference, meeting it scores 70, and going past it scores more with diminishing returns (1.5 times the goal is about 89), so completing your Goals is a solid mark, not the top one. Areas without enough data are left out and the rest is scaled to 100. After 2 days without training each further day costs 3 points (up to 30). MOMENTUM. Your Level over the latest 28 days, minus the average Level over the 90 days before those. 4 points or more is Building, within 4 either way is Holding, 4 or more down is Slipping (Recovery week during a planned deload), and 10 down, or 10 days idle, is Detraining. Until 90 days of history exist it uses what exists, at least ' + FS_MIN_BASE + ' days. The weights, the 70 mark and the cutoffs are my design from your own numbers, not a medical or lab measure of fitness; the numbers inside it are measured.');
 }
 function fsHeroExtra() {
   const F = fitnessModel();
@@ -238,7 +287,7 @@ function fsHeroExtra() {
   const pts = F.series.map(x => x.score);
   let nm = ''; try { const a = fsAdvice(F).find(x => x.gain >= 1); if (a) nm = ' <b>Next best move:</b> ' + esc(a.text); } catch (e) { console.error('fitness advice', e); }
   return '<p class="summary">' + esc(fsLine(F)) + nm + '</p>' + (pts.length >= 3 ? sparkline(pts, 220, 34) : '') +
-    '<div class="xpline">Fitness level ' + nf(F.now.score, 0) + ' of 100' + (F.status ? ', momentum ' + esc(F.status.t.toLowerCase()) : '') + '. ' + tag('MODELED') + '</div>';
+    '<div class="xpline">' + (F.season ? 'Season total ' + nf(F.season.now.total, 0) + ', ' : '') + 'fitness level ' + nf(F.now.score, 0) + ' of 100' + (F.status ? ', momentum ' + esc(F.status.t.toLowerCase()) : '') + '. ' + tag('MODELED') + '</div>';
 }
 function fsBadgeList() {
   const F = fitnessModel(); if (!F) return [];
@@ -278,12 +327,32 @@ function fsAdvice(F) {
 var FS_RANGE = 90;
 function fsRangeNow() { try { const v = Number(sget('season.fsrange')); return v === 28 || v === 90 || v === 0 ? v : 90; } catch (e) { return 90; } }
 function fsRows(F, range) { return range ? F.all.filter(r => r.di >= F.A - range + 1) : F.all; }
+function fsSeasonChart(F, range) {
+  const S = F.season; if (!S) return '';
+  const rows = range ? S.rows.filter(r => r.di >= F.A - range + 1) : S.rows; if (rows.length < 3) return '';
+  const hi = Math.max.apply(null, rows.map(r => r.total));
+  return lineChart({ title: 'Season total, ' + rows.length + ' days', w: 720, h: 230, y0: 0, y1: Math.max(10, Math.ceil(hi * 1.1 / 10) * 10), series: [{ label: 'Season total', unit: ' pts', pts: rows.map(r => [r.di, Math.round(r.total * 10) / 10]) }] });
+}
+function fsSeasonCells(F) {
+  const S = F.season, n = S.now, p = S.pace, D = n.D;
+  const lab = p == null ? 'Building' : p >= 1 ? 'Climbing' : p <= -1 ? 'Falling' : 'Flat';
+  return '<div class="score">' +
+    '<div class="cell"><small>Season total</small><b>' + nf(n.total, 0) + '</b><span>points, it only grows when you beat the bar</span></div>' +
+    '<div class="cell"><small>Pace</small><b>' + lab + '</b><span>' + (p == null ? 'needs 7 days of data' : (Math.abs(p) < 0.5 ? 'about level' : (p > 0 ? 'up ' : 'down ') + nf(Math.abs(p), 0) + ' points') + ' a week, last 14 days') + '</span></div>' +
+    '<div class="cell"><small>Combo</small><b>' + nf(S.mult, 2) + ' times</b><span>' + (S.combo ? 'good weeks in a row: ' + nf(S.combo, 0) + ', gains count more' : 'builds with each good week') + '</span></div>' +
+    '<div class="cell"><small>Today\'s pace</small><b>' + (D == null ? 'n/a' : nf(D, 0)) + '</b><span>of 100, points are added above ' + FS_BAR + ' and taken away below it</span></div></div>';
+}
+function fsSeasonBars(F) {
+  const t = F.season.now.tot, mx = Math.max(1, Math.max.apply(null, FS_SK.map(k => t[k])));
+  return '<h3 class="st-h3">Season points by area</h3><div class="tgs">' + FS_SK.map(k =>
+    '<div class="tg"><div class="row"><b>' + esc(FS_NAME[k]) + '</b><span>' + nf(t[k], 0) + ' points</span></div><div class="tbar" role="img" aria-label="' + esc(FS_NAME[k] + ': ' + nf(t[k], 0) + ' season points') + '"><i style="width:' + (t[k] / mx * 100).toFixed(0) + '%"></i></div></div>').join('') + '</div>';
+}
 function fsChartBox(F, range) {
   const rows = fsRows(F, range); if (rows.length < 3) return '<p class="muted">Not enough days in this range yet.</p>';
   const sc = rows.map(r => r.score), lo = Math.min.apply(null, sc), hi = Math.max.apply(null, sc);
   const y0 = Math.max(0, Math.floor((lo - 6) / 10) * 10), y1 = Math.min(100, Math.ceil((hi + 4) / 10) * 10);
   const span = rows.length === 1 ? 'day' : rows.length + ' days';
-  let h = lineChart({ title: 'Fitness level, ' + span, w: 720, h: 230, y0, y1, hlines: y0 < 70 && y1 > 70 ? [{ y: 70, label: 'goals met = 70' }] : [], series: [{ label: 'Fitness level', unit: '', pts: rows.map(x => [x.di, Math.round(x.score * 10) / 10]) }] });
+  let h = fsSeasonChart(F, range) + '<h3 class="st-h3">Level: where you stand on a 0 to 100 scale</h3>' + lineChart({ title: 'Fitness level, ' + span, w: 720, h: 230, y0, y1, hlines: y0 < 70 && y1 > 70 ? [{ y: 70, label: 'goals met = 70' }] : [], series: [{ label: 'Fitness level', unit: '', pts: rows.map(x => [x.di, Math.round(x.score * 10) / 10]) }] });
   const mo = rows.filter(r => r.mo && isNum(r.mo.m)).map(r => [r.di, Math.round(r.mo.m * 10) / 10]);
   if (mo.length >= 3) {
     const m = mo.map(x => x[1]), a = Math.min(-12, Math.floor(Math.min.apply(null, m) / 5) * 5), z = Math.max(12, Math.ceil(Math.max.apply(null, m) / 5) * 5);
@@ -299,6 +368,7 @@ function fsSection() {
   const best = rows.reduce((a, r) => r.score > a.score ? r : a, rows[0]), low = rows.reduce((a, r) => r.score < a.score ? r : a, rows[0]);
   const chg = F.back ? F.now.score - F.back.score : null;
   let h = '<section class="card" id="fsSection"><div class="sec-h"><h2>Your fitness score</h2>' + tag('MODELED') + '</div>';
+  if (F.season) h += '<p class="sub">Your season total is a running score. Each day adds points when you beat the bar of ' + FS_BAR + ' and takes points away when you fall short, good weeks in a row build a combo, and new personal bests add bursts. It keeps growing as long as you keep doing well.</p>' + fsSeasonCells(F) + fsSeasonBars(F);
   h += '<p class="sub">' + esc(fsLine(F)) + '</p>';
   h += '<div class="score">' +
     '<div class="cell"><small>Level</small><b>' + nf(F.now.score, 0) + '</b><span>of 100, meeting your goals is about 70</span></div>' +
