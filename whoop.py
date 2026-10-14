@@ -51,10 +51,6 @@ try:
     import update as selfupdate
 except Exception:           # self update is optional
     selfupdate = None
-try:
-    import publish as phone
-except Exception:           # the phone page is optional
-    phone = None
 from datetime import datetime, timedelta, timezone
 
 VERSION = "2.1"
@@ -802,11 +798,6 @@ def doctor():
             add(*selfupdate.describe())
         except Exception:
             pass
-    if phone is not None:
-        try:
-            add(*phone.describe(SECRET_DIR))
-        except Exception:
-            pass
     for k, label in (("dash", "The Season dashboard"), ("classic", "Classic dashboard")):
         add("OK" if os.path.exists(FILES[k]) else "WARN", label + (" file is built" if os.path.exists(FILES[k]) else " file is not built yet"))
     if os.name == "nt":
@@ -846,8 +837,6 @@ def main():
     ap.add_argument("--status", action="store_true", help="print the last sync result")
     ap.add_argument("--update", action="store_true", help="check for a dashboard update now")
     ap.add_argument("--setup-email", action="store_true", help="set up the morning email")
-    ap.add_argument("--phone-setup", action="store_true", help="set up the private phone page")
-    ap.add_argument("--phone-now", action="store_true", help="publish the phone page now")
     ap.add_argument("--install-schedule", action="store_true")
     ap.add_argument("--uninstall-schedule", action="store_true")
     args = ap.parse_args()
@@ -862,15 +851,6 @@ def main():
         return doctor()
     if args.install_schedule or args.uninstall_schedule:
         return schedule(args.install_schedule)
-    if args.phone_setup or args.phone_now:
-        if phone is None:
-            print("The phone page module is missing. Run py whoop.py --update, then try again.")
-            return 1
-        if args.phone_setup:
-            return phone.setup(SECRET_DIR, FILES["dash"], log)
-        res = phone.publish(SECRET_DIR, FILES["dash"], log, force=True)
-        print("Phone page: " + res)
-        return 0 if res in ("ok", "unchanged") else 1
     if args.setup_email:
         try:
             email_setup()
@@ -948,8 +928,6 @@ def main():
                 log("Dashboard rebuilt: " + FILES["dash"])
         if not args.build_only and embed.get("meta", {}).get("last_error") is None:
             maybe_email(embed)
-            if phone is not None and not args.no_build and not os.environ.get("WHOOP_NOPUBLISH"):
-                phone.publish(SECRET_DIR, FILES["dash"], log)
         if args.open and os.path.exists(FILES["dash"]):
             webbrowser.open("file:///" + FILES["dash"].replace("\\", "/"))
         return 0

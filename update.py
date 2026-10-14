@@ -112,6 +112,13 @@ def check(log, force=False):
             with open(tmp, "wb") as f:
                 f.write(data)
             os.replace(tmp, dst)
+        try:    # keep only the newest 3 backups so the folder stops growing
+            olds = sorted((d for d in os.listdir(BACKUP_DIR) if os.path.isdir(os.path.join(BACKUP_DIR, d))),
+                          key=lambda d: os.path.getmtime(os.path.join(BACKUP_DIR, d)))
+            for d in olds[:-3]:
+                shutil.rmtree(os.path.join(BACKUP_DIR, d), ignore_errors=True)
+        except OSError:
+            pass
         st["release"], st["updated"] = rel, time.time()
         _save(st)
         log("Updated to release %s: %s" % (rel, ", ".join(sorted(fetched))))

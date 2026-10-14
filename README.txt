@@ -11,8 +11,6 @@ WHAT IS IN THIS FOLDER
   update.py             self update: fetches newer dashboard files by itself once an update address is set
   update_source.txt     the web address self update checks. Leave it alone
   whoop_export.py       reads the WHOOP data export (journal, cycles, sleeps, workouts) and layers it in
-  publish.py            optional phone page: copies the finished dashboard to a private page only you can open
-  PHONE_SETUP.bat       optional. Double click once to set up the phone page (needs Node.js and a free Cloudflare account)
   gym.py                reads your MacroFactor exports (workouts, history, weight, steps) and builds the story lines
   whoop_export_data.json  created by the first run that finds a WHOOP export. Grows with every export
   WORKOUT_LOG_FORMAT.txt  how a workout log file made from a screenshot looks
@@ -90,15 +88,6 @@ DROP OFF FOLDERS (Google Drive, WHOOP Dashboard folder)
   4 Drop workout logs here          workout log files made from MacroFactor screenshots (see WORKOUT_LOG_FORMAT.txt)
   Drop the file in, then the next refresh picks it up. Old files can stay, they are only read once.
   Needs Google Drive for desktop running on this PC. The older places (Downloads, Desktop) still work too.
-
-PHONE PAGE (optional, iPhone)
-  Double click PHONE_SETUP.bat once. It asks for your Cloudflare Account ID and an API token, creates a private page,
-  walks you through turning on the login wall (Cloudflare Access, a code sent to your email), and only then publishes.
-  Node.js must be installed first (in a Command Prompt: winget install OpenJS.NodeJS.LTS).
-  After that every refresh that changes the dashboard updates the page by itself. The PC has to be on and online.
-  Nothing is published unless the login wall is seen to be on, and that is checked again before every publish.
-  On the iPhone open the address in Safari, enter your email and the emailed code, then Share, Add to Home Screen.
-  Your Cloudflare token is saved in %LOCALAPPDATA%\WhoopDashboard, never in the data folder or Drive. To publish now: py whoop.py --phone-now.
 
 SELF UPDATE
   When update_source.txt (one line, the web address of the release) is present, every refresh checks for a newer
