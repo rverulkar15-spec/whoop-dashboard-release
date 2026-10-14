@@ -1,11 +1,11 @@
 {
- "release": 20,
+ "release": 21,
  "files": {
   "README.txt": "e3da3d533988f9adfbfcc7aabc6c926d1bce3332303d4ea4af3763bf0d9a2680",
   "WORKOUT_LOG_FORMAT.txt": "9d19d0bcdc38373afe73b0f28645ad4486049ac65fbb9eb9b67055b520258155",
   "gym.py": "650b9c169f28b1b0e2f210ed1dc05ed9c11ac7a1156df745f2dc572759d3843c",
   "mailer.py": "b052b95da6579bbc8cf7555075f94a989023d43d065e20b9f8a085cf107e968b",
-  "publish.py": "98e5dbb7ab8d36a0e355bf5ad9194ee7d37a3ada0cc404d16ff46cc8f5e76516",
+  "publish.py": "581be2ff329bd46aa2a9c6350e2c545c98e966f460385882c61054fb503f718a",
   "update.py": "f66d0ed158decc86225bd4157241eb65d5f7b3b39a49876f7199fe488d6a25e7",
   "whoop.py": "986d93f13e07eb611fca9c6e2251ada087b22660e3417c4412ec5c132d7358cf",
   "whoop_export.py": "2d73dd695b9821059363b477544a644cf10b62ff1cc5f8cad8915ae8db81220b",

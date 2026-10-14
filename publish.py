@@ -139,14 +139,17 @@ def describe(secret_dir):
 
 
 ACCESS_STEPS = """
-Now turn on the login wall (one time, about 5 minutes). Nothing is published until it is on.
-  1. Open https://one.dash.cloudflare.com and choose your account. If it asks you to set up Zero Trust,
-     pick a team name, then the Free plan (it may ask for a payment method, the Free plan costs 0).
-  2. Go to Access, Applications, Add an application, Self-hosted.
-  3. Name it Season. Add a public hostname: {host}  (leave the path empty).
-  4. Add a policy: action Allow, include Emails, and enter your own email address only.
-  5. Under login methods keep One-time PIN. Set the session duration to 1 month so your phone stays signed in.
-  6. Save the application.
+Now turn on the login wall (one time, about 10 minutes). Nothing is published until it is on.
+  1. Open https://dash.cloudflare.com, go to Workers and Pages, and click the project named {project}.
+  2. Settings, General, then Enable access policy. If Cloudflare asks you to set up Zero Trust first, pick a team name
+     and the Free plan. It asks for payment details even on Free, and the Free plan is not charged.
+  3. Back in Settings, General, click Manage next to the access policy. That opens Access, Applications.
+     Open the application for this project and click Configure.
+  4. Under Public hostname, clear the * from the Subdomain field so it reads exactly {project}, with domain pages.dev.
+     If it complains about the name, rename the application (for example Season) and save.
+  5. Go back to the project, Settings, General, and turn Enable access policy on again. That protects preview links too.
+  6. Check the policy: it must allow only your own email address. Under Zero Trust, Settings, Authentication,
+     Login methods, make sure One-time PIN is added so a code can be emailed to you.
 """
 
 IPHONE = """
@@ -167,8 +170,9 @@ def setup(secret_dir, html_path, log):
     cfg = load_cfg(secret_dir) or {}
     if not cfg:
         print("Create a Cloudflare API token at https://dash.cloudflare.com/profile/api-tokens")
-        print("  Create Token, Create Custom Token, permission: Account, Cloudflare Pages, Edit. Account resources: your account.")
-        print("Your Account ID is on the right side of the Cloudflare dashboard home page for your account.")
+        print("  Create Token, Get started next to Custom token, permission: Account, Cloudflare Pages, Edit, then Continue to summary and Create Token.")
+        print("  Copy the token right away, Cloudflare shows it once.")
+        print("Your Account ID is the 32 letters and numbers in the address bar right after dash.cloudflare.com/ when you are signed in.")
         acct = re.sub(r"[^0-9a-fA-F]", "", input("Account ID: "))
         if len(acct) != 32:
             print("That Account ID does not look right (it is 32 letters and numbers). Run the setup again.")
@@ -186,13 +190,13 @@ def setup(secret_dir, html_path, log):
         print("\n".join(out.strip().splitlines()[-6:]))
         return 1
     host = cfg["project"] + ".pages.dev"
-    print(ACCESS_STEPS.format(host=host))
+    print(ACCESS_STEPS.format(project=cfg["project"]))
     for attempt in range(4):
         input("Press Enter once the application is saved... ")
         ok, why = protected(cfg["project"])
         if ok:
             break
-        print("Not protected yet: " + why + ". Check the hostname is exactly %s and try again." % host)
+        print("Not protected yet: " + why + ". Check step 4, the hostname must be exactly %s, then try again." % host)
     else:
         print("Still not protected, so nothing was published. Run the setup again when ready.")
         return 1
