@@ -546,6 +546,139 @@ def compare(cur, pri):
     return [x[1] for x in wins], [x[1] for x in watch]
 
 
+def _fit(xs, ys):
+    """Least squares slope and correlation for paired lists, or None when there is too little to trust."""
+    n = len(xs)
+    if n < 30:
+        return None
+    mx, my = sum(xs) / n, sum(ys) / n
+    sx = sum((x - mx) ** 2 for x in xs)
+    sy = sum((y - my) ** 2 for y in ys)
+    if sx <= 0 or sy <= 0:
+        return None
+    sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    return sxy / sx, sxy / (sx * sy) ** 0.5, n
+
+
+def _avg(v):
+    v = [x for x in v if x is not None]
+    return sum(v) / len(v) if len(v) >= 3 else None
+
+
+def coach_lines(days, wk, mon, arch):
+    """A short coach note for the week that just ended: a verdict, the one thing that mattered most, next week's plan.
+    Everything comes from your own records. Patterns are associations from your own days, never proof of cause."""
+    try:
+        w0, w1 = mon - 7, mon - 1
+        base0, base1 = mon - 35, mon - 8
+        wr = lambda k, a, b: [days[i].get(k) for i in range(a, b + 1) if i in days]
+        rec_w, rec_b = _avg(wr("recovery", w0, w1)), _avg(wr("recovery", base0, base1))
+        if rec_w is None or rec_b is None:
+            return []
+        lifts = lambda a, b: len({w["di"] for w in wk if a <= w["di"] <= b and w["sport"] == "weightlifting"})
+        lw, lb = lifts(w0, w1), lifts(base0, base1) / 4.0
+        green = len([1 for r in wr("recovery", w0, w1) if r is not None and r >= 67])
+        scored = len([1 for r in wr("recovery", w0, w1) if r is not None])
+        d = rec_w - rec_b
+        if d >= 4 and lw >= lb - 0.5:
+            head = "Strong week"
+        elif d <= -5:
+            head = "Tough week for recovery"
+        elif lw >= lb + 1 and d > -5:
+            head = "Big training week"
+        elif lw <= lb - 1.5:
+            head = "Light training week"
+        else:
+            head = "Steady week"
+        out = ["COACH REPORT", "", "%s. Recovery averaged %.0f%% (your 4 week norm is %.0f%%), %d of %d scored days were green, and you lifted %d time%s (norm %.1f a week)." % (
+            head, rec_w, rec_b, green, scored, lw, "" if lw == 1 else "s", lb)]
+        # the one thing that mattered: each factor's recovery effect in your own data times how far the week moved from your norm
+        hist0 = mon - 70
+        rows = [i for i in range(hist0, mon - 1) if i in days and days[i].get("recovery") is not None]
+        fac = {}
+        xs = [(days[i].get("asleep"), days[i]["recovery"]) for i in rows if days[i].get("asleep") is not None]
+        f = _fit([a for a, _ in xs], [b for _, b in xs])
+        if f:
+            fac["sleep"] = (f, _avg(wr("asleep", w0, w1)), _avg(wr("asleep", base0, base1)))
+        xs = [(days[i - 1].get("strain"), days[i]["recovery"]) for i in rows if (i - 1) in days and days[i - 1].get("strain") is not None]
+        f = _fit([a for a, _ in xs], [b for _, b in xs])
+        if f:
+            fac["strain"] = (f, _avg([days[i - 1].get("strain") for i in range(w0, w1 + 1) if (i - 1) in days]),
+                             _avg([days[i - 1].get("strain") for i in range(base0, base1 + 1) if (i - 1) in days]))
+        best = None
+        for k, (fit, cur, ref) in fac.items():
+            slope, r, n = fit
+            if cur is None or ref is None or abs(r) < 0.25:
+                continue
+            eff = slope * (cur - ref)
+            if best is None or abs(eff) > abs(best[1]):
+                best = (k, eff, slope, r, n, cur, ref)
+        out += ["", "The one thing that mattered most:"]
+        if best and abs(best[1]) >= 1.5:
+            k, eff, slope, r, n, cur, ref = best
+            if k == "sleep":
+                out.append("  Sleep. You averaged %.1f hours against your usual %.1f. In your last %d days each extra hour went with about %+.0f recovery points (correlation %.2f), so this shift is worth roughly %+.0f points." % (cur, ref, n, slope, r, eff))
+            else:
+                out.append("  The strain you carried in. Prior day strain averaged %.1f against your usual %.1f. In your last %d days each extra strain point went with about %+.1f recovery points the next morning (correlation %.2f), so this shift is worth roughly %+.0f points." % (cur, ref, n, slope, r, eff))
+            out.append("  This is a pattern in your own days, not proof of cause.")
+        else:
+            wk_rows = [(i, days[i]["recovery"]) for i in range(w0, w1 + 1) if i in days and days[i].get("recovery") is not None]
+            if len(wk_rows) >= 4:
+                lo = min(wk_rows, key=lambda x: x[1])
+                dd = days[lo[0]]
+                bits = []
+                if dd.get("asleep") is not None:
+                    bits.append("%.1f hours asleep" % dd["asleep"])
+                if (lo[0] - 1) in days and days[lo[0] - 1].get("strain") is not None:
+                    bits.append("strain %.1f the day before" % days[lo[0] - 1]["strain"])
+                out.append("  No single habit stood out this week. Your lowest recovery was %.0f%% on %s%s." % (lo[1], _dname(lo[0]), (" (" + ", ".join(bits) + ")") if bits else ""))
+            else:
+                out.append("  Not enough scored days this week to name one thing.")
+        # the week ahead
+        plan = []
+        gr = [days[i]["asleep"] for i in rows if days[i]["recovery"] >= 67 and days[i].get("asleep") is not None]
+        if len(gr) >= 5:
+            gr.sort()
+            plan.append("Sleep: aim for about %.1f hours. That is the middle of the nights before your green days (%d of them)." % (gr[len(gr) // 2], len(gr)))
+        try:
+            import gym as _g
+            pl = _g.Plan(arch) if arch else None
+            if pl and pl.ok and pl.prog:
+                items = []
+                for di in range(mon, mon + 7):
+                    a = pl.at(di)
+                    if a and not a.get("over") and not a["day"].get("rest"):
+                        items.append("%s %s" % (_g.day_text(di).split(" ")[0], _g.day_focus(a["day"])))
+                if items:
+                    plan.append("Lifting: " + "; ".join(items) + ".")
+        except Exception:
+            pass
+        if not any(p.startswith("Lifting") for p in plan) and lb >= 1:
+            plan.append("Lifting: about %d sessions, matching your 4 week norm of %.1f." % (round(lb), lb))
+        after_l = [days[i]["recovery"] for i in rows if (i - 1) in days and any(w["di"] == i - 1 and w["sport"] == "weightlifting" for w in wk)]
+        after_r = [days[i]["recovery"] for i in rows if (i - 1) in days and not any(w["di"] == i - 1 and w["sport"] == "weightlifting" for w in wk)]
+        if len(after_l) >= 8 and len(after_r) >= 8:
+            al, ar = sum(after_l) / len(after_l), sum(after_r) / len(after_r)
+            if ar - al >= 4:
+                plan.append("Spacing: recovery averages %.0f%% the morning after lifting against %.0f%% after other days (%d and %d days), so put your hardest session before a day you can take easy." % (al, ar, len(after_l), len(after_r)))
+        z_w = sum(w["z2"] for w in wk if w0 <= w["di"] <= w1)
+        z_b = sum(w["z2"] for w in wk if base0 <= w["di"] <= base1) / 4.0
+        if z_b > 0 or z_w > 0:
+            tgt = max(z_b, z_w) * 1.1
+            plan.append("Easy cardio: %.0f minutes in zone 2 (last week %.0f, 4 week norm %.0f), a 10%% step up." % (tgt, z_w, z_b))
+        out += ["", "The week ahead:"] + ["  " + p for p in plan[:5]] if plan else []
+        return out + [""]
+    except Exception:
+        return []
+
+
+_DN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+def _dname(di):
+    return _DN[(di + 3) % 7]
+
+
 def build_weekly(archive, now=None):
     """Last full Monday to Sunday week against the week before, plus first 28 days against last 28."""
     now = now or datetime.now(timezone.utc)
@@ -563,7 +696,7 @@ def build_weekly(archive, now=None):
     cur = block(days, wk, mon - 7, mon - 1, 7)
     pri = block(days, wk, mon - 14, mon - 8, 7)
     wins, watch = compare(cur, pri)
-    lines = ["WEEK IN REVIEW (Monday to Sunday, against the week before)", ""]
+    lines = coach_lines(days, wk, mon, _gym_data()) + ["WEEK IN REVIEW (Monday to Sunday, against the week before)", ""]
     lines += ["Where you grew:"] + (["  " + x for x in wins[:6]] or ["  Nothing moved clearly toward better."])
     lines += ["", "Where to look:"] + (["  " + x for x in watch[:4]] or ["  Nothing moved clearly the wrong way."])
     # since the start
@@ -586,7 +719,7 @@ def build_weekly(archive, now=None):
     lines += ["", "Averages and totals from WHOOP records. WHOOP cannot see weight on the bar or measure metabolism,",
               "so lifting is shown as effort and volume, and energy is a WHOOP estimate. Open the dashboard Progress",
               "section for charts and personal records."]
-    return mon, "WHOOP weekly review", "\n".join(lines)
+    return mon, "WHOOP weekly coach report", "\n".join(lines)
 
 
 def send_weekly(archive, secret_dir, log):

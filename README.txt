@@ -57,8 +57,9 @@ WHAT YOU GET
   The email and the dashboard now count days the same way, so the 28 day averages in the email match the dashboard to the decimal.
   Morning email: your recovery, last night, a Notable lately line when a 7 day average is a record, last 28 days against the 28 before, and an early warning
   line when HRV, resting heart rate, skin temperature and breathing rate drift the wrong way together.
-  Weekly review email: last week against the week before, and first 28 days against the last 28.
-  Sent after the first sync that follows each Monday.
+  Weekly coach report email: opens with a verdict on the week, the one thing that mattered most (sleep or the strain you carried in, sized from your own days),
+  and the week ahead (sleep target, your program's workouts, spacing, easy cardio). Then last week against the week before, and first 28 days against the last 28.
+  Sent after the first sync that follows each Monday. Patterns are associations in your own data, not proof of cause.
 
 GYM LOG (MacroFactor)
   In MacroFactor, export your workouts (the xlsx or csv file). Save it in Downloads, or in a gym_exports folder
