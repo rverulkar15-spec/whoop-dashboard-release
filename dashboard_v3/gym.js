@@ -407,7 +407,7 @@ function gymSessions(g, today) {
     notes.push('Mornings after a gym day average <b>' + nf(mean(aft), 0) + '%</b> recovery against <b>' + nf(mean(oth), 0) + '%</b> after other days (' + aft.length + ' and ' + oth.length + ' mornings). ' + (Math.abs(dlt) < 4 ? 'Not much difference, so lifting is not costing you recovery.' : dlt < 0 ? 'Mornings after lifting run about ' + nf(Math.abs(dlt), 0) + ' points lower. That is common. It is a pattern in your data, not proof of cause.' : 'You actually recover better after lifting days, which usually means you plan them well.'));
   }
   // WHOOP saw a lift but nothing is logged
-  const un = M.workouts.filter(w => w.scored && w.sport === 'weightlifting' && w.di >= first && w.di <= g.exportDi && !g.days.has(w.di)).sort((a, b) => b.di - a.di);
+  const un = M.workouts.filter(w => w.scored && !w.hist && w.sport === 'weightlifting' && w.di >= first && w.di <= g.exportDi && !g.days.has(w.di)).sort((a, b) => b.di - a.di);
   if (un.length) notes.push('WHOOP recorded ' + un.length + (un.length === 1 ? ' lift' : ' lifts') + ' since you started logging with nothing in MacroFactor' + (un.length <= 3 ? ' (' + un.map(w => esc(fmtDayW(w.di))).join(', ') + ')' : ', the latest on ' + esc(fmtDayW(un[0].di))) + '. Log them there and they show up here.');
   if (notes.length) inner += '<ul class="calllist">' + notes.map(n => '<li>' + n + '</li>').join('') + '</ul>';
   return gFold('gymsess', 'Recent sessions and recovery', 'MEASURED', inner, false);

@@ -48,6 +48,10 @@ try:
 except Exception:               # WHOOP export reading is optional
     whoop_export = None
 try:
+    import strava
+except Exception:               # Strava history is optional
+    strava = None
+try:
     import update as selfupdate
 except Exception:           # self update is optional
     selfupdate = None
@@ -76,6 +80,7 @@ FILES = {
     "backups": P("backups"),
     "gym": P("gym_data.json"),
     "export": P("whoop_export_data.json"),
+    "strava": P("strava_data.json"),
 }
 
 # Credentials and login tokens live OUTSIDE this folder, so a cloud synced folder (Google Drive,
@@ -531,7 +536,7 @@ SRC_DIR = P("dashboard_src")
 V3_DIR = P("dashboard_v3")
 SRC_JS = ["core.js", "charts.js", "sections1.js", "sections2.js", "sections3.js", "sections4.js", "orb.js"]
 V3_JS = ["core.js", "charts.js", "sections1.js", "sections2.js", "sections3.js", "sections4.js"]
-V3_OWN = ("gym.js", "story.js", "journal.js", "score.js", "plan.js", "call.js", "season.js")
+V3_OWN = ("gym.js", "story.js", "journal.js", "score.js", "plan.js", "call.js", "running.js", "season.js")
 
 
 def _read(folder, n):
@@ -580,15 +585,29 @@ def load_export():
     return _EXPORT["v"]
 
 
+_STRAVA = {"v": None}
+
+
+def load_strava():
+    """Read any Strava export (activities.csv) not yet seen. None if there is none."""
+    if strava is None:
+        return None
+    _STRAVA["v"] = strava.refresh(HERE, FILES["strava"], log)
+    return _STRAVA["v"]
+
+
 def layer_export(data):
-    """Add export cycles the API archive lacks, in memory only. Returns the data to build and email from."""
+    """Add export cycles the API archive lacks, then Strava history, in memory only. Returns the data to build and email from."""
     ex = _EXPORT["v"]
-    if whoop_export is None or not ex:
-        return data
-    out, n = whoop_export.layer(data, ex)
-    if n:
-        log("WHOOP export layered in: %d days the API did not cover" % n)
-    return out
+    if whoop_export is not None and ex:
+        data, n = whoop_export.layer(data, ex)
+        if n:
+            log("WHOOP export layered in: %d days the API did not cover" % n)
+    if strava is not None and _STRAVA["v"]:
+        data, n = strava.layer(data, _STRAVA["v"])
+        if n:
+            log("Strava history layered in: %d activities WHOOP did not record" % n)
+    return data
 
 
 def build_dashboard(data):
@@ -793,6 +812,16 @@ def doctor():
             add("OK", "WHOOP export read: %d journal days%s, %d cycles" % (len(jr), (", latest " + max(jr)[:10]) if jr else "", len(ex.get("cycles") or [])))
         else:
             add("WARN", "No WHOOP export read yet. Optional: save the WHOOP data export (csv or zip) into your Drive folder or Downloads and refresh")
+    if strava is not None:
+        try:
+            sv = read_json(FILES["strava"])
+        except SyncError:
+            sv = None
+        if sv and sv.get("activities"):
+            dts = sorted(a["s"][:10] for a in sv["activities"].values())
+            add("OK", "Strava history read: %d activities, %s to %s" % (len(sv["activities"]), dts[0], dts[-1]))
+        else:
+            add("WARN", "No Strava history read yet. Optional: put your Strava export activities.csv in the Drive folder strava export and refresh")
     if selfupdate is not None:
         try:
             add(*selfupdate.describe())
@@ -888,6 +917,7 @@ def main():
             archive.setdefault("meta", {})
         embed = archive
         load_export()
+        load_strava()
         if args.build_only:
             log("Build only, using archive with %s cycles" % len(archive.get("cycles", [])))
         else:

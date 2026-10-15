@@ -12,6 +12,8 @@ WHAT IS IN THIS FOLDER
   update_source.txt     the web address self update checks. Leave it alone
   whoop_export.py       reads the WHOOP data export (journal, cycles, sleeps, workouts) and layers it in
   gym.py                reads your MacroFactor exports (workouts, history, weight, steps) and builds the story lines
+  strava.py             reads your Strava export (activities.csv) and layers that history in
+  strava_data.json      created by the first run that finds a Strava export. Grows with every export
   whoop_export_data.json  created by the first run that finds a WHOOP export. Grows with every export
   WORKOUT_LOG_FORMAT.txt  how a workout log file made from a screenshot looks
   gym_data.json         your gym history, built from the exports. Grows with every export
@@ -58,7 +60,7 @@ WHAT YOU GET
   Morning email: your recovery, last night, a Notable lately line when a 7 day average is a record, last 28 days against the 28 before, and an early warning
   line when HRV, resting heart rate, skin temperature and breathing rate drift the wrong way together.
   Weekly coach report email: opens with a verdict on the week, the one thing that mattered most (sleep or the strain you carried in, sized from your own days),
-  and the week ahead (sleep target, your program's workouts, spacing, easy cardio). Then last week against the week before, and first 28 days against the last 28.
+  and the week ahead (sleep target, your program's workouts, spacing, easy cardio, a cautious running mileage ceiling). Then last week against the week before, and first 28 days against the last 28.
   Sent after the first sync that follows each Monday. Patterns are associations in your own data, not proof of cause.
 
 GYM LOG (MacroFactor)
@@ -76,6 +78,16 @@ WHOOP EXPORT (journal and older days)
   compares your habits in the latest break against the run. Days the live WHOOP link does not hold are filled in from
   the export, in the page only, so your archive is never altered. A newer export adds to the old one.
   One journal question (Masturbated?) is skipped on purpose. To skip others, edit SKIP_QUESTIONS in whoop_export.py.
+
+STRAVA HISTORY (older runs, lifts and more)
+  In Strava, Settings, My Account, Download or Delete Your Account, Request Your Archive. Unzip it and put the folder in your
+  Google Drive WHOOP Dashboard folder (name it with the word strava, for example "strava export"), or put activities.csv in a
+  strava_exports folder here or in Downloads. The next refresh finds it, keeps the history and ignores the other files in the export.
+  Only distance, time, heart rate, calories and shoe name are kept. No names, notes, maps or contacts.
+  What it adds: a Running history card on Training (weekly and monthly distance, records, breaks, heartbeats per mile by quarter,
+  shoe miles, a cautious weekly mileage ceiling), lifting sessions in the Story back to when you began, and the lifetime badges.
+  Anything WHOOP also recorded is counted once. Strava history does not move your Season total, which stays anchored
+  to your WHOOP tracking. Strava times are read as US Central. A newer export adds to the old one.
 
 WORKOUT SCREENSHOTS (going forward)
   After the history export, new workouts come from MacroFactor screenshots. A separate chat reads each screenshot and

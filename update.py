@@ -18,7 +18,7 @@ BACKUP_DIR = os.path.join(HERE, "update_backup")
 CHECK_EVERY_S = 3 * 3600
 ALLOWED_DIRS = ("dashboard_src", "dashboard_v3")
 ALLOWED_ROOT = (".py", ".txt")                       # .bat files are never replaced while they may be running
-NEVER = {"gym_data.json", "whoop_data.json", "user_entries.json", "update_source.txt", ".env"}
+NEVER = {"gym_data.json", "strava_data.json", "whoop_data.json", "user_entries.json", "update_source.txt", ".env"}
 
 
 def source():

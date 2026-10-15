@@ -36,7 +36,7 @@ function sWeeks() {                          // every week since the first recor
 function seasonXP() {
   const ev = new Map(), add = (di, n) => ev.set(di, (ev.get(di) || 0) + n);
   M.workouts.forEach(w => {
-    if (!sIsTrain(w)) return;
+    if (!sIsTrain(w) || w.hist) return;             // Strava history feeds the analysis, not the Season's XP
     add(w.di, (w.sport === 'weightlifting' || w.sport === 'running') ? 40 : 30);
     const z = Math.round(wZoneMin(w)); if (z > 0) add(w.di, z);
   });
@@ -298,6 +298,7 @@ function renderSeason() {
   const arc = $('#lvlArc'); if (arc) requestAnimationFrame(() => requestAnimationFrame(() => arc.setAttribute('stroke-dashoffset', arc.dataset.to)));
   seasonDetail(SEASON_SEL != null && SEASON_SEL <= M.anchor && SEASON_SEL >= M.days[0].di ? SEASON_SEL : M.anchor);
   renderTargetsEditor(); renderLevelsInfo(X);
+  const rhb = $('#runHistBody'); if (rhb && typeof renderRunHist === 'function') { try { rhb.innerHTML = renderRunHist(); } catch (e) { console.error('runhist', e); rhb.innerHTML = ''; } }
   const gb = $('#gymBody'); if (gb && typeof renderGym === 'function') { try { gb.innerHTML = renderGym() + (typeof plateauCard === 'function' ? plateauCard() : ''); } catch (e) { console.error('gym', e); gb.innerHTML = '<div class="banner err">The strength section could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; } }
   try { renderStory(); } catch (e) { console.error('story', e); const sb = $('#storyBody'); if (sb) sb.innerHTML = '<div class="banner err">The story could not be drawn: ' + esc(e && e.message) + '. Everything else is unaffected.</div>'; }
   const lv = $('#leversBody'); if (lv) { try { lv.innerHTML = (typeof liftReadinessCard === 'function' ? liftReadinessCard() : '') + leversCard() + (typeof journalCard === 'function' ? journalCard() : ''); } catch (e) { console.error('levers', e); lv.innerHTML = ''; } }

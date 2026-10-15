@@ -162,7 +162,7 @@ function buildModel(data, C) {
     const g = k => sc && isNum(sc[k]) ? sc[k] : null;
     const wk = {
       id: w.id, sport: w.sport_name || 'unknown', start, end, o, di: dIdx(start, o), hour: hourOfDay(start, o), durMin: (end - start) / MINUTE,
-      scored: !!sc, strain: g('strain'), avgHR: g('average_heart_rate'), maxHR: g('max_heart_rate'), kj: g('kilojoule'), pct: g('percent_recorded'),
+      scored: !!sc, hist: w.src === 'strava', gear: w.gear || null, strain: g('strain'), avgHR: g('average_heart_rate'), maxHR: g('max_heart_rate'), kj: g('kilojoule'), pct: g('percent_recorded'),
       dist: g('distance_meter'), altGain: g('altitude_gain_meter'),
       zones: z ? ['zone_zero_milli', 'zone_one_milli', 'zone_two_milli', 'zone_three_milli', 'zone_four_milli', 'zone_five_milli'].map(k => isNum(z[k]) ? z[k] : 0) : null
     };

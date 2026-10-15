@@ -565,6 +565,32 @@ def _avg(v):
     return sum(v) / len(v) if len(v) >= 3 else None
 
 
+def run_line(wk, mon):
+    """A cautious weekly mileage ceiling from all runs on file (WHOOP plus any Strava history). A rule of thumb, not a prescription."""
+    runs = [w for w in wk if w["sport"] == "running" and w.get("miles")]
+    if len(runs) < 5:
+        return None
+    wsum = {}
+    for r in runs:
+        wsum[(r["di"] - mon) // 7] = wsum.get((r["di"] - mon) // 7, 0.0) + r["miles"]       # key -1 is last week
+    full = {k: v for k, v in wsum.items() if k <= -1}
+    last, avg4 = full.get(-1, 0.0), sum(full.get(k, 0.0) for k in (-1, -2, -3, -4)) / 4.0
+    peak = max(full.values()) if full else 0.0
+    gap = mon - max(r["di"] for r in runs if r["di"] < mon) if any(r["di"] < mon for r in runs) else None
+    if gap is None:
+        return None
+    if gap >= 21:
+        recent = [full[k] for k in sorted(full, reverse=True) if full[k] > 0][:4]
+        base = sum(recent) / len(recent) if recent else 0.0
+        ceil = min(base * 0.5, peak)
+        return "Running: %d days since your last run, so ease back in. Keep the week near %.0f miles (about half of what you were running before), easy effort." % (gap, ceil) if ceil >= 1 else None
+    ref = last if last > 0 else avg4
+    ceil = min(ref * 1.1, peak) if peak else ref * 1.1
+    if ceil < 1:
+        return None
+    return "Running: last week %.1f miles, 4 week average %.1f, best week %.1f. A cautious ceiling for this week is about %.0f miles (last week plus 10%%, a rule of thumb, not a proven limit)." % (last, avg4, peak, ceil)
+
+
 def coach_lines(days, wk, mon, arch):
     """A short coach note for the week that just ended: a verdict, the one thing that mattered most, next week's plan.
     Everything comes from your own records. Patterns are associations from your own days, never proof of cause."""
@@ -666,6 +692,12 @@ def coach_lines(days, wk, mon, arch):
         if z_b > 0 or z_w > 0:
             tgt = max(z_b, z_w) * 1.1
             plan.append("Easy cardio: %.0f minutes in zone 2 (last week %.0f, 4 week norm %.0f), a 10%% step up." % (tgt, z_w, z_b))
+        try:
+            rl = run_line(wk, mon)
+            if rl:
+                plan.append(rl)
+        except Exception:
+            pass
         out += ["", "The week ahead:"] + ["  " + p for p in plan[:5]] if plan else []
         return out + [""]
     except Exception:
